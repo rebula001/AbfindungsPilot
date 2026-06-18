@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+@import 'tailwindcss-primeui';
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/font-roboto/Roboto-VariableFont_wdth,wght.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/font-roboto/Roboto-Italic-VariableFont_wdth,wght.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  font-family:
+    'Roboto',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--p-surface-950);
+  background: var(--p-surface-50);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.tax-class-tooltip {
+  max-width: 34rem;
+}
+
+.tax-class-tooltip.p-tooltip-right {
+  padding-left: 10px;
+}
+
+.tax-class-tooltip .p-tooltip-text {
+  border: 0;
+  background: var(--p-surface-100);
+  box-shadow: 0 5px 8px rgb(15 23 42 / 14%);
+  color: var(--p-surface-900);
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.tax-class-tooltip.p-tooltip-right .p-tooltip-arrow {
+  border-right-color: var(--p-surface-100);
+}
+
+.tax-class-tooltip p {
+  margin: 0.5rem 0 0;
+}
+
+.tax-class-tooltip ul {
+  margin: 0.5rem 0;
+  padding-left: 1.1rem;
+  list-style-position: outside;
+  list-style-type: disc;
+}
+
+.tax-class-tooltip li {
+  display: list-item;
+}

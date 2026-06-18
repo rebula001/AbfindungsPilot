@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+*.local
+package-lock.json
+
+# Sonar-Artefakte (von scripts/sonar-scan.ps1 erzeugt)
+.sonarqube-report
+.scannerwork

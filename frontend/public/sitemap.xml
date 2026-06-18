@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Abfindungspilot — Sitemap
+
+  TODO before going public: replace <USER> with your real GitHub username
+  (or your custom domain). After replacing, also update robots.txt and
+  submit this URL to Google Search Console + Bing Webmaster Tools.
+
+  This is a single-page application: the entire app lives at one URL,
+  language switching happens client-side via vue-i18n. Hence only one <url>
+  entry is needed.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://&lt;USER&gt;.github.io/abfindungspilot/</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

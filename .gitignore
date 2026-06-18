@@ -1,0 +1,40 @@
+# ===== 敏感文件（含 token，绝不能提交）=====
+frontend/sonar-project.properties
+
+# ===== 报告 / scanner 工作目录 =====
+frontend/.sonarqube-report/
+frontend/.scannerwork/
+frontend/coverage/
+
+# ===== 依赖与构建产物 =====
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+
+# ===== pack-frontend.ps1 输出 =====
+abfindungspilot.zip
+
+# ===== 日志 =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== 编辑器 / IDE =====
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# ===== OS 临时文件 =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ===== 环境变量 =====
+.env
+.env.local
+.env.*.local

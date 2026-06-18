@@ -1,0 +1,96 @@
+#
+# Deploy -> GitHub Pages.
+#
+# Triggered:
+# - automatisch nach jedem gruennen CI-Lauf auf main
+# - manuell ueber die Actions-UI (workflow_dispatch)
+#
+# Voraussetzung in den Repo-Settings:
+#   Settings -> Pages -> Build and deployment -> Source = "GitHub Actions"
+#
+# Wenn der Repository-Name nicht `abfindungspilot` ist, muss `VITE_BASE_PATH`
+# unten angepasst werden, sonst laden Assets von der falschen URL.
+name: Deploy to GitHub Pages
+
+on:
+  # Sobald CI auf main gruen ist -> automatisch deployen.
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+  # GitHub Pages Standardberechtigungen
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Es darf immer nur ein Deploy gleichzeitig laufen (Pages-Konvention).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build for Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Nur deployen, wenn CI tatsaechlich gruen war (oder manuell ausgeloest).
+    if: >
+      ${{ github.event_name == 'workflow_dispatch' ||
+          github.event.workflow_run.conclusion == 'success' }}
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (clean)
+        run: npm ci
+
+      # Build mit korrektem Asset-Praefix fuer die Pages-URL
+      # (https://<user>.github.io/abfindungspilot/...).
+      # Hier `build:fast`, weil CI bereits lint/format/i18n geprueft hat.
+      - name: Build
+        env:
+          VITE_BASE_PATH: /abfindungspilot/
+        run: npm run build:fast
+
+      # SPA-Fallback: Pages liefert fuer unbekannte Pfade 404.html aus.
+      # Wir kopieren index.html -> 404.html, damit jeder Pfad die App laedt
+      # (interne Navigation funktioniert ohne Server-Routing).
+      - name: SPA fallback (404.html = index.html)
+        run: Copy-Item dist/index.html dist/404.html
+        shell: pwsh
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy to Pages
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 5
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

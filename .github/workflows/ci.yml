@@ -1,0 +1,64 @@
+#
+# CI - laeuft bei jedem Push auf `main` und bei jedem Pull Request.
+#
+# Aufgabe: dieselben Checks reproduzieren, die `npm run build` lokal macht
+# (lint + format + i18n + vue-tsc + vite build). Schlaegt etwas fehl, ist
+# der PR / Commit rot.
+#
+# Was bewusst NICHT hier laeuft:
+# - SonarQube -> benoetigt Token, laeuft lokal via `npm run sonar:all`
+# - Deploy -> kommt in einer separaten Pages-Workflow-Datei
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # erlaubt manuelles Ausloesen ueber die GitHub-UI
+
+# Bei mehreren Pushes auf denselben Branch nur den letzten Lauf behalten.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint, type-check, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (clean)
+        run: npm ci
+
+      # `npm run build` ruft intern `check:all` auf:
+      # lint:check + format:check + i18n:check + vue-tsc + vite build
+      # Damit ist eine gruene CI gleichbedeutend mit "lokal sauber gebaut".
+      - name: Build (strict)
+        run: npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: frontend/dist
+          retention-days: 7
+          if-no-files-found: error

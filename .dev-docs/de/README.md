@@ -12,20 +12,21 @@
 6. [06 - Tooling](./06-tooling.md) - Lint, Sonar, Build, Commit-Checkliste
 7. [07 - Workflow](./07-development-workflow.md) - Schritt-für-Schritt: neue UI-Felder, Steuersätze ändern
 8. [08 - GitHub Release & Open-Source-Setup](./08-github-release.md) - Lizenz, CI/CD, Pages, Dependabot, PR-Template
+9. [09 - Abschlussaudit Berechnungslogik](./09-calculation-audit.md) - geprüfte Annahmen, Korrekturen, verbleibende Grenzen
 
 ## Schnellreferenz
 
-| Befehl | Wirkung |
-| --- | --- |
-| `npm run dev` | Vite dev-server |
-| `npm run build` | strict: check:all + vue-tsc + vite build |
-| `npm run build:fast` | Schnell: nur vue-tsc + vite build |
-| `npm run preview` | Lokaler Server für `dist/` |
-| `npm run check:all` | lint + format + i18n (kein Build) |
-| `npm run lint:check` / `lint:fix` | ESLint |
-| `npm run format:check` / `format:fix` | Prettier |
-| `npm run i18n:check` | DE/ZH Key-Diff (CI-blockierend) |
-| `npm run sonar:all` | SonarQube Scan + Report-Fetch |
+| Befehl                                | Wirkung                                  |
+| ------------------------------------- | ---------------------------------------- |
+| `npm run dev`                         | Vite dev-server                          |
+| `npm run build`                       | strict: check:all + vue-tsc + vite build |
+| `npm run build:fast`                  | Schnell: nur vue-tsc + vite build        |
+| `npm run preview`                     | Lokaler Server für `dist/`               |
+| `npm run check:all`                   | lint + format + i18n (kein Build)        |
+| `npm run lint:check` / `lint:fix`     | ESLint                                   |
+| `npm run format:check` / `format:fix` | Prettier                                 |
+| `npm run i18n:check`                  | DE/ZH Key-Diff (CI-blockierend)          |
+| `npm run sonar:all`                   | SonarQube Scan + Report-Fetch            |
 
 ## Verwandte Verzeichnisse
 

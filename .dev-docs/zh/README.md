@@ -12,20 +12,21 @@
 6. [06 - 工具链](./06-tooling.md) - Lint、Sonar、Build、提交清单
 7. [07 - 工作流](./07-development-workflow.md) - 端到端：加 UI 字段、改税率
 8. [08 - GitHub 发布与开源准备](./08-github-release.md) - 许可证、CI/CD、Pages、Dependabot、PR 模板
+9. [09 - 计算逻辑终检审计](./09-calculation-audit.md) - 已检查假设、修正项、剩余边界
 
 ## 速查
 
-| 命令 | 作用 |
-| --- | --- |
-| `npm run dev` | Vite 开发服务器 |
-| `npm run build` | 严格：check:all + vue-tsc + vite build |
-| `npm run build:fast` | 快速：仅 vue-tsc + vite build |
-| `npm run preview` | 本地启动 `dist/` |
-| `npm run check:all` | lint + format + i18n（不构建） |
-| `npm run lint:check` / `lint:fix` | ESLint |
-| `npm run format:check` / `format:fix` | Prettier |
-| `npm run i18n:check` | de/zh 键差异（CI 阻塞） |
-| `npm run sonar:all` | SonarQube 扫描 + 拉取报告 |
+| 命令                                  | 作用                                   |
+| ------------------------------------- | -------------------------------------- |
+| `npm run dev`                         | Vite 开发服务器                        |
+| `npm run build`                       | 严格：check:all + vue-tsc + vite build |
+| `npm run build:fast`                  | 快速：仅 vue-tsc + vite build          |
+| `npm run preview`                     | 本地启动 `dist/`                       |
+| `npm run check:all`                   | lint + format + i18n（不构建）         |
+| `npm run lint:check` / `lint:fix`     | ESLint                                 |
+| `npm run format:check` / `format:fix` | Prettier                               |
+| `npm run i18n:check`                  | de/zh 键差异（CI 阻塞）                |
+| `npm run sonar:all`                   | SonarQube 扫描 + 拉取报告              |
 
 ## 相关目录
 

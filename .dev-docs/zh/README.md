@@ -13,6 +13,7 @@
 7. [07 - 工作流](./07-development-workflow.md) - 端到端：加 UI 字段、改税率
 8. [08 - GitHub 发布与开源准备](./08-github-release.md) - 许可证、CI/CD、Pages、Dependabot、PR 模板
 9. [09 - 计算逻辑终检审计](./09-calculation-audit.md) - 已检查假设、修正项、剩余边界
+10. [10 - 更新年度参数](./10-tax-parameter-upgrade.md) - 税务 / 社保 JSON 参数的年度更新流程
 
 ## 速查
 

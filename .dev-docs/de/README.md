@@ -13,6 +13,7 @@
 7. [07 - Workflow](./07-development-workflow.md) - Schritt-für-Schritt: neue UI-Felder, Steuersätze ändern
 8. [08 - GitHub Release & Open-Source-Setup](./08-github-release.md) - Lizenz, CI/CD, Pages, Dependabot, PR-Template
 9. [09 - Abschlussaudit Berechnungslogik](./09-calculation-audit.md) - geprüfte Annahmen, Korrekturen, verbleibende Grenzen
+10. [10 - Jahresparameter aktualisieren](./10-tax-parameter-upgrade.md) - JSON-Updateprozess fuer Steuer-/Sozialparameter
 
 ## Schnellreferenz
 

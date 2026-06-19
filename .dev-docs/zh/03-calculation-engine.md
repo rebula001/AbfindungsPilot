@@ -1,6 +1,6 @@
 # 03 - 计算引擎
 
-> **30 秒了解：** `computeYear(input)` 在每个税年内对两个场景（`stayUnemployed`、`newJob`）和两个人各算一遍。现在覆盖工资/ALG/Abfindung、ALG-I 后继续失业时的 GKV/PV 自付、Vorsorgeaufwendungen、捐款或 Sonderausgaben-Pauschbetrag、§ 24b、§§ 32a/32b/34 EStG、KFB/Kindergeld、Soli 和 Kirchensteuer。所有 2026 年常量都在 `constants.ts`。
+> **30 秒了解：** `computeYear(input)` 在每个税年内对两个场景（`stayUnemployed`、`newJob`）和两个人各算一遍。现在覆盖工资/ALG/Abfindung、ALG-I 后继续失业时的 GKV/PV 自付、Vorsorgeaufwendungen、捐款或 Sonderausgaben-Pauschbetrag、§ 24b、§§ 32a/32b/34 EStG、KFB/Kindergeld、Soli 和 Kirchensteuer。当前年度参数位于 `frontend/src/tax-parameters/*.json`；`constants.ts` 只是兼容旧导出名的兼容层。
 
 ## 源文件
 
@@ -8,7 +8,9 @@
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [`engine.ts`](../../../frontend/src/calculation/engine.ts)             | 全部公式（`computeYear`、`computePersonYear`、`computePersonTax`、`computeJointTax`…） |
 | [`types.ts`](../../../frontend/src/calculation/types.ts)               | 接口定义                                                                               |
-| [`constants.ts`](../../../frontend/src/calculation/constants.ts)       | 2026 税率、社保、家庭、Soli、Kirchensteuer 常量                                        |
+| [`tax-parameters/2026.json`](../../../frontend/src/tax-parameters/2026.json) | 当前年度参数：税表、社保、家庭、Soli、Kirchensteuer、UI 示例                         |
+| [`tax-parameters/index.ts`](../../../frontend/src/tax-parameters/index.ts)   | 加载 JSON，格式化 i18n 参数，导出 `CURRENT_TAX_PARAMETERS`                            |
+| [`constants.ts`](../../../frontend/src/calculation/constants.ts)       | 兼容层：保留旧常量名，实际值来自 JSON                                                  |
 | [`inputAdapter.ts`](../../../frontend/src/calculation/inputAdapter.ts) | UI snapshot -> Engine 输入                                                             |
 
 ## 输入 / 输出

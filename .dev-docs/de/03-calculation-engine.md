@@ -1,6 +1,6 @@
 # 03 - Berechnungs-Engine
 
-> **In 30 Sekunden:** `computeYear(input)` rechnet pro Steuerjahr beide Szenarien (`stayUnemployed`, `newJob`) fuer beide Personen aus. Enthalten sind Lohn/ALG/Abfindung, SV-AN inkl. GKV/PV-Selbstzahlung nach ALG-I-Ende, Vorsorgeaufwendungen, Spenden bzw. Sonderausgaben-Pauschbetrag, § 24b, §§ 32a/32b/34 EStG, KFB/Kindergeld, Soli und Kirchensteuer. Alle 2026er Zahlen stehen in `constants.ts`.
+> **In 30 Sekunden:** `computeYear(input)` rechnet pro Steuerjahr beide Szenarien (`stayUnemployed`, `newJob`) fuer beide Personen aus. Enthalten sind Lohn/ALG/Abfindung, SV-AN inkl. GKV/PV-Selbstzahlung nach ALG-I-Ende, Vorsorgeaufwendungen, Spenden bzw. Sonderausgaben-Pauschbetrag, § 24b, §§ 32a/32b/34 EStG, KFB/Kindergeld, Soli und Kirchensteuer. Die aktiven Jahreswerte stehen in `frontend/src/tax-parameters/*.json`; `constants.ts` ist nur noch die Kompatibilitaetsschicht fuer alte Exportnamen.
 
 ## Quick-Navigation
 
@@ -8,7 +8,9 @@
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | [`engine.ts`](../../../frontend/src/calculation/engine.ts)             | Alle Formeln (`computeYear()`, `computePersonYear()`, `computePersonTax()`, ...) |
 | [`types.ts`](../../../frontend/src/calculation/types.ts)               | Eingabe-/Ausgabe-Typen (`PersonProfile`, `YearComputation`, ...)                 |
-| [`constants.ts`](../../../frontend/src/calculation/constants.ts)       | 2026er Tarif-, SV-, Familien-, Soli- und KiSt-Konstanten                         |
+| [`tax-parameters/2026.json`](../../../frontend/src/tax-parameters/2026.json) | Aktive Jahresparameter fuer Tarif, SV, Familie, Soli, KiSt und UI-Beispiele      |
+| [`tax-parameters/index.ts`](../../../frontend/src/tax-parameters/index.ts)   | Laedt JSON, formatiert i18n-Parameter, exportiert `CURRENT_TAX_PARAMETERS`        |
+| [`constants.ts`](../../../frontend/src/calculation/constants.ts)             | Kompatibilitaetsschicht: alte Konstantennamen, Werte aus JSON                    |
 | [`inputAdapter.ts`](../../../frontend/src/calculation/inputAdapter.ts) | UI-Snapshot -> Engine-Inputs                                                     |
 
 ## Eingabe / Ausgabe

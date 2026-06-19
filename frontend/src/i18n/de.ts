@@ -59,6 +59,7 @@ export default {
       '<p>Der <strong>Faktor</strong> bei Steuerklasse <strong>IV mit Faktor</strong> verteilt die monatliche <strong>Lohnsteuer-Vorauszahlung</strong> beider Ehegatten gerechter über das Jahr.</p><p><strong>Hinweis:</strong> Diese Anwendung berechnet die <strong>Jahres-Einkommensteuer</strong> (Veranlagung), nicht die monatliche Lohnsteuer. Der Faktor wirkt sich daher auf das Endergebnis <strong>nicht</strong> aus — er ist hier nur informatorisch und wird der Engine nicht übergeben.</p>',
     taxClassInfoAriaLabel: 'Hinweis zur Lohnsteuerklasse',
     churchTax: 'Zahlen Sie Kirchensteuer',
+    churchTaxInfoAriaLabel: 'Hinweis zur Kirchensteuer',
     federalState: 'Ihr Bundesland',
     federalStatePlaceholder: 'Bundesland auswählen',
     healthInsurance: 'Krankenversicherung',
@@ -72,6 +73,8 @@ export default {
     hasChildren: 'Haben Sie Kinder?',
     careInsuranceInfoAriaLabel: 'Hinweis zur Pflegeversicherung',
     childrenUnder25: 'Anzahl Kinder unter 25',
+    singleParentRelief: 'Sind Sie alleinerziehend?',
+    singleParentReliefAriaLabel: 'Hinweis zum Entlastungsbetrag fuer Alleinerziehende',
     childAllowance: 'Kinderfreibetrag',
     childAllowanceInfoAriaLabel: 'Hinweis zum Kinderfreibetrag',
     childBenefitMonthlyPerChild: 'Kindergeld pro Kind / Monat',
@@ -106,10 +109,16 @@ export default {
     oldEmployerIncomeCurrentYearAriaLabel: 'Hinweis zum Bruttolohn alter Arbeitgeber',
     oldEmployerIncomeCurrentYearTooltip:
       '<p>Summe des <strong>Bruttoarbeitslohns</strong> beim alten Arbeitgeber im Jahr der Arbeitslosigkeit – vom <strong>1. Januar bis zum Tag vor Beginn der Arbeitslosigkeit</strong>.</p><p>Beispiel: Beginn Arbeitslosigkeit am 01.08.2026 → Eintrag = Bruttolohn 01.01.–31.07.2026 (inkl. Urlaubs-/Weihnachtsgeld, ohne Abfindung).</p>',
+    lastMonthlyGrossBeforeUnemployment: 'Letztes Monatsbrutto vor Arbeitslosigkeit',
+    lastMonthlyGrossBeforeUnemploymentAriaLabel: 'Hinweis zum letzten Monatsbrutto vor Arbeitslosigkeit',
+    lastMonthlyGrossBeforeUnemploymentTooltip:
+      '<p>Dieses Monatsbrutto wird nur für die grobe GKV/PV-Schätzung nach Ende des ALG-I-Bezugs genutzt.</p><p>Hintergrund: Eine Abfindung kann nach § 10 Abs. 1 S. 4 SGB V die beitragsfreie Familienversicherung blockieren. Die App verteilt die Abfindung vereinfacht auf Monate mit dem letzten Monatsbrutto und berechnet nach ALG-I-Ende eine freiwillige GKV/PV-Selbstzahlung.</p><p>Wenn hier 0 € steht, nutzt die Berechnung ersatzweise den durchschnittlichen Monatsbrutto aus dem alten Job. Beispiel: Beginn Arbeitslosigkeit am 01.08.2026 → Bruttolohn Jan.–Jul. geteilt durch 7.</p>',
     unemploymentBenefitMonthly: 'ALG I / Monat',
     unemploymentBenefitMonthlyAriaLabel: 'Hinweis zur Berechnung des ALG I',
     unemploymentBenefitMonthlyTooltip:
       '<p>Das <strong>monatliche ALG I</strong> wird so ermittelt:</p><ol><li><strong>Bemessungsentgelt / Tag</strong> = beitragspflichtiges Bruttoarbeitsentgelt der letzten 12 Monate vor Arbeitslosigkeit ÷ 365.</li><li><strong>Leistungsentgelt / Tag</strong> = Bemessungsentgelt − pauschalierte Lohnsteuer (Lohnsteuerklasse) − pauschaliertes Sozialversicherungsentgelt (21 %).</li><li><strong>Leistungssatz</strong>: 60 % des Leistungsentgelts; 67 % bei mindestens einem berücksichtigungsfähigen Kind (§ 149 SGB III).</li><li><strong>Monatsbetrag</strong> = Tagesleistung × 30.</li></ol><p>Den exakten Wert können Sie mit dem <strong>offiziellen Tool der Bundesagentur für Arbeit</strong> berechnen.</p>',
+    alvInsuranceMonthsLast5Years: 'Versicherungspflichtige Monate in den letzten 5 Jahren',
+    alvInsuranceMonthsLast5YearsAriaLabel: 'Hinweis zu den Versicherungsmonaten für ALG I',
     unemploymentBenefitDurationMonths: 'Anspruchsdauer ALG I',
     hasBenefitReductionPeriod: 'Sperrzeit (Minderung)',
     benefitReductionMonths: 'Sperrzeit-Monate',
@@ -155,12 +164,16 @@ export default {
     ],
     healthInsuranceInfoTooltip:
       '<p>Die <strong>gesetzliche Krankenversicherung (GKV)</strong> ist Pflichtversicherung für Arbeitnehmer bis zur <strong>Jahresarbeitsentgeltgrenze (JAEG)</strong> – 2026: 73.800 € brutto/Jahr (§ 6 Abs. 1 Nr. 1 SGB V). Wer regelmäßig darüber liegt, kann in die <strong>private Krankenversicherung (PKV)</strong> wechseln oder freiwillig in der GKV bleiben.</p><p><strong>gesetzlich pflichtversichert</strong>: Standard für abhängig Beschäftigte unter der JAEG – AG/AN tragen den Beitrag je zur Hälfte.</p><p><strong>freiwillig gesetzlich versichert</strong>: oberhalb der JAEG, in der GKV verbleibend (z. B. nach Wechsel zurück, Selbstständige).</p><p><strong>privat versichert</strong>: PKV statt GKV; Beitrag risiko- und tarifabhängig, AG-Zuschuss bis zur Hälfte des GKV-Höchstbeitrags.</p>',
+    churchTaxInfoTooltip:
+      '<p>Kirchensteuer wird in Bayern und Baden-Württemberg mit <strong>8 %</strong>, in den übrigen Bundesländern mit <strong>9 %</strong> der ESt-Bemessungsgrundlage erhoben.</p><p>Bei Kindern nutzt die App für Soli/Kirchensteuer die Bemessungsgrundlage nach <strong>§ 51a EStG</strong>: die Einkommensteuer mit Kinderfreibetrag, ohne Kindergeld-Hinzurechnung.</p><p><strong>Familie:</strong> Die App nimmt an, dass beide Ehegatten denselben Kirchensteuerstatus haben. Fälle, in denen nur ein Ehegatte Kirchensteuer zahlt, werden nicht separat modelliert.</p>',
     healthInsuranceRateInfoTooltip:
       '<p>Der <strong>GKV-Beitragssatz</strong> setzt sich aus zwei Teilen zusammen:</p><ul><li><strong>Allgemeiner Beitragssatz: 14,60 %</strong> (§ 241 SGB V) – fest, je zur Hälfte von AG und AN getragen.</li><li><strong>Kassenindividueller Zusatzbeitrag</strong> (§ 242a SGB V) – jede Krankenkasse legt ihn selbst fest. Durchschnitt 2026 ca. 2,90 %; den genauen Wert Ihrer Kasse tragen Sie hier ein. Seit 2019 ebenfalls paritätisch.</li></ul><p>AN-Anteil = (14,60 % + Zusatzbeitrag) ÷ 2, gedeckelt bei der Beitragsbemessungsgrenze (2026: 5.812,50 €/Monat).</p>',
     careInsuranceInfoTooltip:
-      '<p><strong>Pflegeversicherung 2026</strong>: Beitragssatz 3,60 % (4,20 % für Kinderlose) vom beitragspflichtigen Einkommen bis zur Bemessungsgrenze (5.812,50 €/Monat).</p><p>Arbeitgeber und Arbeitnehmer teilen sich den Beitrag je zur Hälfte (jeweils 1,80 %) – Ausnahme Sachsen. Am Zuschlag von 0,60 %-Punkten für Kinderlose werden Arbeitgeber <strong>nicht</strong> beteiligt.</p><p>Kinder unter 25 entlasten den AN-Anteil: Der Kinderlosenzuschlag entfällt; ab dem 2. Kind reduziert sich der PV-Beitrag pro Kind um 0,25 %-Punkte (max. 5 Kinder).</p>',
+      '<p><strong>Pflegeversicherung 2026</strong>: Beitragssatz 3,60 % (4,20 % für Kinderlose) vom beitragspflichtigen Einkommen bis zur Bemessungsgrenze (5.812,50 €/Monat).</p><p>Arbeitgeber und Arbeitnehmer teilen sich den Beitrag je zur Hälfte (jeweils 1,80 %) – Ausnahme Sachsen: Dort trägt der Arbeitnehmer 0,50 %-Punkte mehr. Am Zuschlag von 0,60 %-Punkten für Kinderlose werden Arbeitgeber <strong>nicht</strong> beteiligt.</p><p>Kinder unter 25 entlasten den AN-Anteil: Der Kinderlosenzuschlag entfällt; ab dem 2. Kind reduziert sich der PV-Beitrag pro Kind um 0,25 %-Punkte (max. 5 Kinder).</p>',
     privateInsuranceDeductibleTooltip:
       '<p>Nur der <strong>Basisanteil</strong> der privaten KV/PV ist als Sonderausgabe abziehbar.</p><p>Komfort- und Wahlleistungen bleiben außen vor.</p><p><strong>Hinweis zur Arbeitslosigkeit (Vereinfachung):</strong> Während des ALG-I-Bezugs übernimmt die Bundesagentur für Arbeit (BA) für PKV-Versicherte einen Zuschuss bis zur Höhe des fiktiven GKV-Beitrags (§ 174 SGB III) — der hier eingegebene Basisanteil wäre also in arbeitslosen Monaten faktisch zum großen Teil abgedeckt. Diese App rechnet dennoch den vollen Jahresbasisbeitrag ab, ohne den BA-Zuschuss abzuziehen. Das überschätzt die PKV-Kosten im Liegenbleiben-Szenario leicht und führt zu einem konservativen Netto (Richtung „Neue Arbeit lohnt sich eher").</p>',
+    singleParentReliefTooltip:
+      '<p><strong>§ 24b EStG</strong>: Der Entlastungsbetrag gilt nur, wenn mindestens ein kindergeld- oder kinderfreibetragsberechtigtes Kind zu Ihrem Haushalt gehört und keine Haushaltsgemeinschaft mit einer anderen volljährigen Person besteht.</p><p>2026: <strong>4.260 €</strong> für das erste Kind plus <strong>240 €</strong> je weiterem Kind. Die App berücksichtigt den Betrag nur, wenn Sie diese Voraussetzung hier bestätigen.</p>',
     childAllowanceInfoTooltip:
       '<p>Der <strong>Kinderfreibetrag</strong> (KFB + BEA = 9.756 € pro Kind, 2026) ersetzt im Rahmen der Günstigerprüfung das Kindergeld.</p><p>0,5 = halber Anteil pro Elternteil, 1,0 = ganzer Freibetrag auf diese Person übertragen.</p><p><strong>Hinweis:</strong> Diese Anwendung berücksichtigt aktuell stets die <strong>hälftige Aufteilung</strong> pro Elternteil bei Einzelveranlagung bzw. den <strong>vollen KFB</strong> bei Zusammenveranlagung. Abweichende Übertragungen (§ 32 Abs. 6 EStG) fließen vereinfacht <strong>nicht</strong> in die Berechnung ein und sind hier rein informatorisch.</p>',
     childBenefitInfoTooltip: '<p><strong>Kindergeld</strong> 2026: 259 €/Monat pro Kind (= 3.108 €/Jahr).</p>',
@@ -168,8 +181,10 @@ export default {
       '<p>Die <strong>gesetzliche Rentenversicherung</strong> ist ein Zweig des deutschen Sozialversicherungssystems und dient vorrangig der Alterssicherung von Arbeitnehmern.</p><p>In Deutschland gilt grundsätzlich <strong>Versicherungspflicht</strong>. Ausgenommen sind u. a. Beamte, Richter, Soldaten und weitere Beschäftigte öffentlicher Institutionen sowie viele Selbstständige (eigenständige Altersversorgung über Versorgungswerke / private Vorsorge).</p><p><strong>pflichtversichert</strong>: Standard für abhängig Beschäftigte – AN-Anteil wird vom Bruttolohn einbehalten.</p><p><strong>nicht pflichtversichert</strong>: Beamte, Selbstständige ohne RV-Pflicht – kein AN-Beitrag.</p>',
     unemploymentInsuranceInfoTooltip:
       '<p>Die <strong>Arbeitslosenversicherung</strong> sichert das Einkommen während der Arbeitssuche und finanziert Beratung & Vermittlung durch die Bundesagentur für Arbeit.</p><p>Es gilt grundsätzlich <strong>Versicherungspflicht</strong> für alle abhängig Beschäftigten; ausgenommen sind u. a. Selbstständige sowie außerhalb der EU beschäftigte Arbeitnehmer.</p><p><strong>Beitragssatz 2026: 2,60 %</strong> des beitragspflichtigen Bruttoentgelts – je zur Hälfte von Arbeitgeber und Arbeitnehmer getragen (jeweils 1,30 %).</p><p><strong>pflichtversichert</strong>: Standard für abhängig Beschäftigte.</p><p><strong>nicht pflichtversichert</strong>: z. B. Beamte, Selbstständige – kein ALG-I-Anspruch.</p>',
+    alvInsuranceMonthsLast5YearsTooltip:
+      '<p>Für die <strong>Anspruchsdauer ALG I</strong> nach § 147 SGB III zählen die <strong>gesamten</strong> Monate mit Versicherungspflicht in der Arbeitslosenversicherung innerhalb der letzten 5 Jahre.</p><p>Die Monate müssen <strong>nicht durchgehend</strong> sein; Unterbrechungen sind möglich. Entscheidend ist die Summe der Monate. Für den Grundanspruch muss zusätzlich die Anwartschaftszeit erfüllt sein (typisch mindestens 12 Monate innerhalb der letzten 30 Monate).</p>',
     unemploymentBenefitDurationTooltip:
-      '<p>Anspruchsdauer ALG I nach <strong>§ 147 SGB III</strong> (vereinfacht):</p><ul><li>≥ 58 Jahre: 24 Monate</li><li>≥ 55 Jahre: 18 Monate</li><li>≥ 50 Jahre: 15 Monate</li><li>sonst: 12 Monate</li></ul>',
+      '<p>Anspruchsdauer ALG I nach <strong>§ 147 SGB III</strong>: Sie hängt von Alter und versicherungspflichtigen Monaten ab.</p><ul><li>12 / 16 / 20 / 24 Versicherungsmonate → 6 / 8 / 10 / 12 Monate ALG I</li><li>ab 50 Jahren + 30 Versicherungsmonate → 15 Monate</li><li>ab 55 Jahren + 36 Versicherungsmonate → 18 Monate</li><li>ab 58 Jahren + 48 Versicherungsmonate → 24 Monate</li></ul>',
     benefitReductionPeriodTooltip:
       '<p>Eine <strong>Sperrzeit</strong> (§ 159 SGB III) verhängt die Bundesagentur für Arbeit, wenn die Arbeitslosigkeit aus Sicht der Versichertengemeinschaft selbst herbeigeführt wurde – ohne wichtigen Grund. Während der Sperrzeit wird <strong>kein ALG I gezahlt</strong>; gleichzeitig <strong>verkürzt sich die Anspruchsdauer</strong> um die entsprechenden Wochen.</p><p><strong>Typische Auslöser:</strong></p><ul><li><strong>Sperrzeit bei Arbeitsaufgabe</strong>: eigene Kündigung oder einvernehmlicher Aufhebungsvertrag ohne wichtigen Grund (z. B. Mobbing, drohende betriebsbedingte Kündigung) – i. d. R. <strong>12 Wochen</strong>.</li><li><strong>Sperrzeit bei Arbeitsablehnung</strong>: zumutbares Stellenangebot abgelehnt – 3, 6 oder 12 Wochen je nach Wiederholung.</li><li><strong>Sperrzeit bei unzureichenden Eigenbemühungen</strong> oder verspäteter Arbeitsuchend-Meldung (§ 38 SGB III) – meist 1 Woche.</li><li><strong>Sperrzeit bei Meldeversäumnis</strong> oder Ablehnung einer Maßnahme – 1 bis mehrere Wochen.</li></ul><p><strong>Folge:</strong> ALG-I-Beginn verschiebt sich, die maximale Bezugsdauer reduziert sich, ggf. erlischt der Anspruch ganz (Sperrzeiten ≥ 21 Wochen kumuliert).</p>',
     benefitSuspensionPeriodTooltip:
@@ -368,24 +383,28 @@ export default {
       // Hinweis: ALG nicht in zvE, nur Progressionsvorbehalt
       arbeitslosengeld: {
         title: 'Arbeitslosengeld I (Progressionsvorbehalt)',
-        note: 'ALG I ist steuerfrei und wird NICHT zum zvE addiert. Es erhöht nur den Steuersatz (Progressionsvorbehalt).'
+        note: 'ALG I ist steuerfrei und wird NICHT zum zvE addiert. Für den Steuersatz zählt es nur nach Abzug des nicht durch Arbeitslohn verbrauchten Arbeitnehmer-Pauschbetrags (§ 32b Abs. 2 EStG).'
       },
       incomeRelatedExpenses: {
         title: 'Werbungskosten (Arbeitnehmer-Pauschbetrag)',
-        legalBasis: '§ 9a Satz 1 Nr. 1 Buchst. a EStG — 1.230 € pro AN mit Arbeitslohn'
+        legalBasis: '§ 9a Satz 1 Nr. 1 Buchst. a EStG — max. 1.230 €, begrenzt auf den Arbeitslohn; ungenutzter Teil mindert ALG für § 32b'
       },
       rentalIncomeNet: {
         title: 'Einkünfte aus Vermietung & Verpachtung',
         legalBasis:
           '§ 21 EStG (vereinfacht netto, ohne AfA / weitere Werbungskosten). Sonstige Einkünfte (§ 22 EStG) werden ebenfalls dem Gesamtbetrag der Einkünfte zugerechnet.'
       },
+      singleParentRelief: {
+        title: 'Entlastungsbetrag für Alleinerziehende',
+        legalBasis: '§ 24b EStG — 4.260 € + 240 € je weiterem Kind, wenn in der Eingabe bestaetigt'
+      },
       vorsorge: {
         title: 'Vorsorgeaufwendungen (Sonderausgaben)',
         legalBasis: '§ 10 Abs. 1 Nr. 2 + 3 EStG'
       },
       spenden: {
-        title: 'Spenden',
-        legalBasis: '§ 10b EStG — bis 20 % des Gesamtbetrags der Einkünfte'
+        title: 'Spenden / Sonderausgaben-Pauschbetrag',
+        legalBasis: '§§ 10b, 10c EStG — max. abziehbare Spenden oder 36 € Pauschbetrag'
       },
       zvE: {
         title: 'zu versteuerndes Einkommen (zvE, ohne KFB)',
@@ -393,28 +412,29 @@ export default {
       },
       kv: {
         title: 'Krankenversicherung (KV-AN)',
-        legalBasis: 'GKV: min(Brutto/Monat ; 5.812,50 €) × KV-Satz/2 × Monate — PKV: feste Jahresprämie laut Eingabe (BBG entfällt)'
+        legalBasis:
+          'Beschäftigung: GKV hälftig. Nach ALG-I-Ende ohne neue Arbeit: freiwillige GKV-Selbstzahlung auf Basis letztes Monatsbrutto/Abfindung (§§ 10, 240, 243 SGB V)'
       },
       pv: {
         title: 'Pflegeversicherung (PV-AN)',
-        legalBasis: 'GKV: min(Brutto/Monat ; 5.812,50 €) × 1,80 % (Sachsen 2,30 %) × Monate — PKV: feste Jahresprämie laut Eingabe'
+        legalBasis: 'Beschäftigung: PV-AN-Satz nach Kinderstatus/Sachsen. Nach ALG-I-Ende ohne neue Arbeit: volle PV-Selbstzahlung nach Kinderstatus'
       },
       rv: {
         title: 'Rentenversicherung (RV-AN)',
-        legalBasis: 'min(Brutto/Monat ; 8.450,00 €) × 9,30 % × Monate'
+        legalBasis: 'Nur Beschäftigungsmonate: min(Brutto/Monat ; 8.450,00 €) × 9,30 % × Monate; keine Pflichtbeiträge nach ALG-I-Ende'
       },
       alv: {
         title: 'Arbeitslosenversicherung (ALV-AN)',
-        legalBasis: 'min(Brutto/Monat ; 8.450,00 €) × 1,30 % × Monate'
+        legalBasis: 'Nur Beschäftigungsmonate: min(Brutto/Monat ; 8.450,00 €) × 1,30 % × Monate; keine Pflichtbeiträge nach ALG-I-Ende'
       },
       sozialabgabenGesamt: {
         title: 'Sozialabgaben gesamt (AN-Anteil)',
-        legalBasis: '= KV + PV + RV + ALV — keine Beiträge während ALG-I-Bezug'
+        legalBasis: '= KV + PV + RV + ALV — keine Eigenbeiträge während ALG-I-Bezug; ggf. KV/PV-Selbstzahlung nach ALG-I-Ende'
       },
       // Gruppe 3 — ESt (Einzelveranlagung, per Person)
       tariffIncomeTaxWithoutKFB: {
         title: 'Tarifliche ESt OHNE KFB',
-        legalBasis: 'Grundtarif (§ 32a Abs. 1) + ProgrV für eigenes ALG (§ 32b) + Fünftelregelung Abfindung (§ 34)'
+        legalBasis: 'Grundtarif (§ 32a Abs. 1) + ProgrV für ALG nach APB-Abzug (§ 32b) + Fünftelregelung Abfindung (§ 34)'
       },
       tariffIncomeTaxWithKFB: {
         title: 'Tarifliche ESt MIT KFB-Hälfte',
@@ -434,11 +454,11 @@ export default {
       },
       soli: {
         title: 'Solidaritätszuschlag',
-        legalBasis: '§§ 1, 4 SolzG — Freigrenze 19.950 € (Einzel), Milderung 11,9 %, Cap 5,5 %'
+        legalBasis: '§§ 1, 3, 4 SolzG i. V. m. § 51a EStG — Basis mit KFB; Freigrenze 20.350 € / 40.700 €'
       },
       steuerGesamt: {
         title: 'Steuer gesamt',
-        legalBasis: '= Festzus. ESt + Soli + Kirchensteuer (8 % BY/BW, sonst 9 % der festzus. ESt; 0 € wenn nicht kirchensteuerpflichtig)'
+        legalBasis: '= Festzus. ESt + Soli + Kirchensteuer; Soli/Kirchensteuer auf §-51a-Basis mit KFB (KiSt 8 % BY/BW, sonst 9 %)'
       },
       // Gruppe 4 — Netto-Einkommen pro Person
       bruttoeinnahmen: {
@@ -468,36 +488,116 @@ export default {
     childUnit: { one: 'Kind', many: 'Kinder' },
     // Popover 内容：formula 数组 = 公式说明（无参数），detail 数组 = 数字代入（带 {var} 占位符）
     popover: {
+      kv: {
+        formula: [
+          'Krankenversicherung:',
+          '',
+          'Beschäftigungsmonate: min(Brutto/Monat, KV/PV-BBG) × (14,6 % + Zusatzbeitrag) / 2 × Monate.',
+          'ALG-I-Bezug: keine Eigenzahlung, die Beiträge trägt die Bundesagentur für Arbeit.',
+          'Nach ALG-I-Ende ohne neue Arbeit: wenn die Abfindung nach § 10 Abs. 1 S. 4 SGB V die Familienversicherung blockiert,',
+          'setzt die App eine freiwillige GKV-Selbstzahlung an:',
+          'min(letztes Monatsbrutto, KV/PV-BBG) × (14,0 % ermäßigter Satz + Zusatzbeitrag) × Monate.',
+          '',
+          'RV/ALV entstehen in dieser Selbstzahlerphase nicht automatisch.'
+        ],
+        detailWithoutSelfPay: [
+          'Beschäftigung / PKV laut Eingabe = {employment}',
+          'KV-Selbstzahlung nach ALG-I-Ende = 0 €',
+          '',
+          '→ KV gesamt = {total}'
+        ],
+        detailWithSelfPay: [
+          'Beschäftigung / PKV laut Eingabe = {employment}',
+          '',
+          'KV-Selbstzahlung nach ALG-I-Ende:',
+          'Letztes Monatsbrutto (Eingabe/berechnet) = {gross}',
+          'KV/PV-BBG 2026                         = {bbg}',
+          'Bemessungsgrundlage                    = min({gross}, {bbg}) = {base}',
+          'Monate                                 = {months}',
+          'Satz                                   = {rate}',
+          'Monatliche Selbstzahlung               = {monthlySelfPay}',
+          'Selbstzahlung gesamt                   = {monthlySelfPay} × {months} = {selfPay}',
+          '',
+          '→ KV gesamt = {employment} + {selfPay} = {total}'
+        ]
+      },
+      pv: {
+        formula: [
+          'Pflegeversicherung:',
+          '',
+          'Beschäftigungsmonate: min(Brutto/Monat, KV/PV-BBG) × PV-AN-Satz × Monate.',
+          'Der PV-AN-Satz berücksichtigt Kinderlosenzuschlag, Kinderabschlag und Sachsen.',
+          'Nach ALG-I-Ende ohne neue Arbeit: volle PV-Selbstzahlung auf derselben Grundlage wie die freiwillige GKV.',
+          'Für Selbstzahler gilt keine Arbeitgeber-/Sachsen-Aufteilung; maßgeblich ist der Mitgliedssatz nach Kinderstatus.',
+          '',
+          'RV/ALV entstehen in dieser Selbstzahlerphase nicht automatisch.'
+        ],
+        detailWithoutSelfPay: [
+          'Beschäftigung / PKV laut Eingabe = {employment}',
+          'PV-Selbstzahlung nach ALG-I-Ende = 0 €',
+          '',
+          '→ PV gesamt = {total}'
+        ],
+        detailWithSelfPay: [
+          'Beschäftigung / PKV laut Eingabe = {employment}',
+          '',
+          'PV-Selbstzahlung nach ALG-I-Ende:',
+          'Letztes Monatsbrutto (Eingabe/berechnet) = {gross}',
+          'KV/PV-BBG 2026                         = {bbg}',
+          'Bemessungsgrundlage                    = min({gross}, {bbg}) = {base}',
+          'Monate                                 = {months}',
+          'Satz                                   = {rate}',
+          'Monatliche Selbstzahlung               = {monthlySelfPay}',
+          'Selbstzahlung gesamt                   = {monthlySelfPay} × {months} = {selfPay}',
+          '',
+          '→ PV gesamt = {employment} + {selfPay} = {total}'
+        ]
+      },
       vorsorge: {
         formula: [
-          'Vorsorgeaufwendungen = RV-AN + KV-AN × 0,96 + PV-AN',
+          'Vorsorgeaufwendungen = RV-AN + KV-Basis + PV',
           '',
           '   RV-AN: zu 100 % als Basisaltersvorsorge abzugsfähig (§ 10 Abs. 1 Nr. 2 EStG, seit 2023 voll)',
-          '   KV-AN: nur 96 % (4 % Krankengeld-Anteil nicht abzugsfähig, § 10 Abs. 1 Nr. 3 Satz 4 EStG)',
-          '   PV-AN: zu 100 % abzugsfähig (§ 10 Abs. 1 Nr. 3 Buchst. a EStG)',
+          '   KV Beschäftigung: nur 96 % (4 % Krankengeld-Anteil nicht abzugsfähig, § 10 Abs. 1 Nr. 3 Satz 4 EStG)',
+          '   KV-Selbstzahlung ohne Krankengeldanspruch: zu 100 % angesetzt',
+          '   PV: zu 100 % abzugsfähig (§ 10 Abs. 1 Nr. 3 Buchst. a EStG)',
           '   ALV-AN: NICHT als Sonderausgabe abzugsfähig (nur „sonstige Vorsorge" im Pauschbetrag)',
           '',
           'Höchstbetragsprüfung wird hier vereinfacht weggelassen (für die hier vorliegenden Einkommen unkritisch).'
         ],
         detail: [
-          'RV-AN              = {rv}            (× 100 %)',
-          'KV-AN              = {kv}',
-          'KV-AN × 0,96       = {kvDeduct}',
-          'PV-AN              = {pv}            (× 100 %)',
+          'RV-AN                    = {rv}            (× 100 %)',
+          'KV Beschäftigung          = {kvEmployment}',
+          'KV Beschäftigung × 0,96   = {kvEmploymentDeduct}',
+          'KV-Selbstzahlung          = {kvSelfPaid}   (× 100 %)',
+          'KV-Basis gesamt           = {kvDeduct}',
+          'PV                        = {pv}            (× 100 %)',
           '',
-          '→ Vorsorgeabzug   = {rv} + {kvDeduct} + {pv}',
-          '                  = {total}'
+          '→ Vorsorgeabzug           = {rv} + {kvDeduct} + {pv}',
+          '                          = {total}'
         ]
       },
       fuenftel: {
-        head: ['zvE_ord (ohne Abfindung) = {zvEord}', 'Abfindung                = {abfindung}', 'ALG (§ 32b)              = {alg}'],
-        progrVWithAlg: ['ProgrV-Satz = ESt({sumPlain})/{sumPlain} = {ratePct} %', 'Sockel-ESt  = {ratePct} % × {zvEordPlain} = {sockel}'],
-        progrVWithoutAlg: ['Sockel-ESt  = Grundtarif({zvEordPlain}) = {sockel}'],
+        head: ['zvE_ord (ohne Abfindung) = {zvEOrd}', 'Abfindung                = {abfindung}', 'ALG (§ 32b, Auszahlung)  = {alg}'],
+        progrVWithAlg: [
+          'abzgl. ungenutzter Arbeitnehmer-Pauschbetrag = {apbDeduction}',
+          'ALG für ProgrV = {algForProgression}',
+          'ProgrV-Satz = ESt({zvEOrdPlain} + {algForProgressionPlain})/{sumPlain} = {ratePct} %',
+          'Sockel-ESt  = {ratePct} % × {zvEOrdPlain} = {sockel}'
+        ],
+        progrVWithoutAlg: ['Sockel-ESt  = Grundtarif({zvEOrdPlain}) = {sockel}'],
         fuenftelWithAbf: [
           '1/5 Abfindung      = {fuenftelBetrag}',
           'ESt(zvE_ord + 1/5) = {estMitFuenftel}',
           'Zusatz § 34       = 5 × ({estMitPlain} − {sockelPlain}) = {zusatz}',
           '→ ESt = Sockel + Zusatz = {total}'
+        ],
+        fuenftelNegativeOrdinary: [
+          '§ 34 Abs. 1 Satz 3: zvE_ord ist negativ, Gesamt-zvE aber positiv.',
+          'Gesamt-zvE = zvE_ord + Abfindung = {totalZvE}',
+          '1/5 Gesamt-zvE = {satz3Base}',
+          'ESt(1/5 Gesamt-zvE) = {estSatz3Base}',
+          '→ ESt = 5 × {estSatz3BasePlain} = {total}'
         ],
         fuenftelWithoutAbf: ['→ ESt = Sockel (keine Abfindung) = {sockel}']
       },
@@ -509,7 +609,8 @@ export default {
           'zvE_ord ist das ordentliche zvE OHNE Abfindung. Die Abfindung wird durch',
           'die Fünftelregelung separat behandelt und nur als Zusatzbetrag aufgeschlagen.',
           '',
-          'ESt(·) mit ProgrV § 32b: bes. Steuersatz = Grundtarif(zvE+ALG) / (zvE+ALG)',
+          'ESt(·) mit ProgrV § 32b: ALG wird vorher um den nicht verbrauchten Arbeitnehmer-Pauschbetrag (§ 9a) gekürzt.',
+          'bes. Steuersatz = Grundtarif(zvE + ALG_für_ProgrV) / (zvE + ALG_für_ProgrV)',
           'Grundtarif: Grundfreibetrag 12.348 €, danach 4 Zonen (§ 32a Abs. 1 EStG)'
         ]
       },
@@ -558,19 +659,20 @@ export default {
       },
       soli: {
         formula: [
-          'Solidaritätszuschlag (Einzelveranlagung 2026):',
+          'Solidaritätszuschlag 2026:',
           '',
-          '   Wenn festzus. ESt ≤ 19.950 €  → Soli = 0 €  (Freigrenze)',
+          '   Einzel: Wenn §-51a-Basis ≤ 20.350 €  → Soli = 0 €  (Freigrenze)',
+          '   Zusammen: Wenn §-51a-Basis ≤ 40.700 €  → Soli = 0 €  (Freigrenze)',
           '',
-          '   Sonst: Soli = min( 5,5 % × ESt ; 11,9 % × (ESt − 19.950) )',
-          '          (Milderungszone bis 33.912 €; ab dann greift der Cap 5,5 % × ESt)',
+          '   Sonst: Soli = min( 5,5 % × Basis ; 11,9 % × (Basis − Freigrenze) )',
+          '          (Milderungszone bis ca. 37.839 € Einzel / 75.678 € Zusammen; danach greift der Cap)',
           '',
-          'Berechnungsbasis ist die festzus. ESt aus der Günstigerprüfung (3 ohne Soli).',
-          'Kirchensteuer entfällt: beide Personen laut Stammdaten kirchensteuerfrei.'
+          'Berechnungsbasis ist nach § 51a EStG die ESt mit Kinderfreibetrag, ohne Kindergeld-Hinzurechnung.',
+          'Kirchensteuer wird im Ergebnis separat auf derselben §-51a-Basis addiert.'
         ],
-        detailBelowFreigrenze: ['festzus. ESt = {est}', '→ ≤ Freigrenze {freigrenze}', '→ Soli = 0 €'],
+        detailBelowFreigrenze: ['§-51a-Basis = {est}', '→ ≤ Freigrenze {freigrenze}', '→ Soli = 0 €'],
         detailAboveFreigrenze: [
-          'festzus. ESt = {est}',
+          '§-51a-Basis = {est}',
           '',
           'Cap (5,5 %)        = {soliRate} % × {estPlain} = {cap}',
           'Milderungszone     = {milderungRate} % × ({estPlain} − {freigrenzePlain})',
@@ -579,6 +681,7 @@ export default {
           '→ Soli = min({capPlain}, {milderungPlain}) = {soli}',
           '   ({chosen})'
         ],
+        jointAllocation: 'Zusammenveranlagung: oben steht die gemeinsame Soli-Basis; angezeigt wird hier der zugeordnete Anteil {allocated}.',
         capWins: 'Cap 5,5 % greift',
         milderungActive: 'Milderungszone aktiv'
       },
@@ -627,6 +730,7 @@ export default {
           '   2.2 ESt mit KFB           = {est22}',
           '   + 2.4 Hinzurechnung KG    = {childBenefitShare}',
           '   = festzus. ESt           = {assessedIncomeTax}',
+          '   §51a-Basis Soli/KiSt      = {zuschlagsteuerBaseIncomeTax}',
           '   + 2.6 Soli                = {soli}',
           '   + Kirchensteuer           = {kirchensteuer}',
           '   = Steuer gesamt          = {total}',
@@ -646,6 +750,7 @@ export default {
           'Variante A (gewählt) — nur Kindergeld:',
           '   2.1 ESt ohne KFB          = {est21}',
           '   = festzus. ESt           = {assessedIncomeTax}',
+          '   §51a-Basis Soli/KiSt      = {zuschlagsteuerBaseIncomeTax}',
           '   + 2.6 Soli                = {soli}',
           '   + Kirchensteuer           = {kirchensteuer}',
           '   = Steuer gesamt          = {total}',

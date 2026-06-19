@@ -23,8 +23,12 @@ export interface PersonProfile {
   privateAnnualPV?: number;
   pensionInsurance: boolean;
   unemploymentInsurance: boolean;
+  /** false nur fuer den technischen Null-Spouse im Single-Modus. */
+  activeTaxSubject: boolean;
   hasChildren: boolean;
   childrenUnder25: number;
+  /** Anspruch auf Entlastungsbetrag fuer Alleinerziehende (§ 24b EStG). */
+  singleParentReliefEligible: boolean;
 }
 
 /** 人员的收入与支出基础参数（与场景无关的部分） */
@@ -32,6 +36,8 @@ export interface PersonIncomeData {
   personKey: 'user' | 'spouse';
   /** 旧工作每月毛工资（截至失业前） */
   monthlyGrossOldJob: number;
+  /** 失业前最后一个月毛工资；用于 ALG-I 结束后 Entlassungsentschaedigung 导致的 GKV/PV 自付估算。 */
+  lastMonthlyGrossBeforeUnemployment: number;
   /** 是否经历失业 */
   unemployed: boolean;
   /** 失业开始日期（含此日）- 旧工作在此日结束 */
@@ -94,6 +100,8 @@ export interface IncomeBreakdown {
   severance: number;
   /** SV-Bemessungssegmente：每段含 monatliches Brutto + Anzahl Monate */
   svSegments: SvSegment[];
+  /** ALG-I 结束后继续失业且 Abfindung 仍阻断 Familienversicherung 时，自付 GKV/PV 的估算段。 */
+  selfPaidHealthInsuranceSegments: SelfPaidHealthInsuranceSegment[];
 }
 
 /** SV-Beitragssegment：一段连续月份内的固定月毛 */
@@ -103,12 +111,31 @@ export interface SvSegment {
   months: number;
 }
 
+/** Freiwillige GKV/PV-Selbstzahlung nach ALG-I-Ende wegen Entlassungsentschaedigung. */
+export interface SelfPaidHealthInsuranceSegment {
+  kind: 'postAlgUnemployed';
+  /** Letztes Monatsbrutto vor Arbeitslosigkeit vor BBG-Kappung. */
+  monthlyGrossBeforeCap: number;
+  /** Beitragspflichtige Monatsbasis nach KV/PV-BBG-Kappung. */
+  monthlyAssessment: number;
+  months: number;
+}
+
 /** 单年单人单场景的 SV-AN-Anteile */
 export interface SvBreakdown {
   kv: number;
   pv: number;
   rv: number;
   alv: number;
+  kvEmployment: number;
+  pvEmployment: number;
+  rvEmployment: number;
+  alvEmployment: number;
+  kvSelfPaidAfterAlg: number;
+  pvSelfPaidAfterAlg: number;
+  selfPaidHealthInsuranceMonths: number;
+  selfPaidHealthInsuranceMonthlyGross: number;
+  selfPaidHealthInsuranceMonthlyBase: number;
 }
 
 /** 单年单人单场景的完整中间结果（直到 zvE） */
@@ -117,12 +144,24 @@ export interface PersonYearResult {
   grossWages: number; // = oldJobWage + newJobWage
   incomeRelatedExpenses: number;
   employmentIncome: number; // = grossWages - incomeRelatedExpenses
+  /** Nicht durch Arbeitslohn verbrauchter Arbeitnehmer-Pauschbetrag (§ 9a EStG). */
+  unusedArbeitnehmerPauschbetrag: number;
+  /** Teil des ungenutzten Pauschbetrags, der ALG I fuer § 32b mindert. */
+  unemploymentBenefitPauschbetragDeduction: number;
+  /** ALG I nach Abzug des nicht verbrauchten Arbeitnehmer-Pauschbetrags (§ 32b Abs. 2 EStG). */
+  unemploymentBenefitForProgression: number;
   rentalIncomeNet: number; // = rentalIncome
-  totalIncome: number; // = employmentIncome + rentalIncomeNet
+  /** Entlastungsbetrag fuer Alleinerziehende (§ 24b EStG), falls in der Eingabe bestaetigt. */
+  singleParentRelief: number;
+  totalIncome: number; // = employmentIncome + rentalIncomeNet + otherIncome - singleParentRelief
   sv: SvBreakdown;
   pensionExpenseDeduction: number; // abzugsfähige Vorsorgeaufwendungen § 10 EStG
+  /** Allgemeine Sonderausgaben: max(Spendenabzug, Sonderausgaben-Pauschbetrag § 10c EStG). */
+  generalSpecialExpensesDeduction: number;
+  /** Angewendeter Sonderausgaben-Pauschbetrag nach § 10c EStG (36 € pro aktivem Steuerpflichtigen). */
+  sonderausgabenPauschbetrag: number;
   donationDeduction: number;
-  specialExpenses: number; // = pensionExpenseDeduction + donationDeduction
+  specialExpenses: number; // = pensionExpenseDeduction + generalSpecialExpensesDeduction
   zvEwithoutKFB: number; // = totalIncome - specialExpenses
 }
 
@@ -138,6 +177,10 @@ export interface PersonTaxResult {
   severance: number;
   /** ALG I dieser Person（für § 32b Progressionsvorbehalt） */
   unemploymentBenefit: number;
+  /** Abzug ungenutzter Arbeitnehmer-Pauschbetrag vom ALG I fuer § 32b. */
+  unemploymentBenefitPauschbetragDeduction: number;
+  /** ALG I nach Pauschbetragsabzug fuer § 32b Progressionsvorbehalt. */
+  unemploymentBenefitForProgression: number;
   /** Tarifliche ESt nach §§ 32a/32b/34 - ohne KFB-Abzug，Grundtarif */
   tarifIncomeTaxWithoutKFB: number;
   /** Tarifliche ESt nach §§ 32a/32b/34 - mit KFB-Abzug，Grundtarif */
@@ -150,9 +193,11 @@ export interface PersonTaxResult {
   kfbPreferred: boolean;
   /** Festzusetzende ESt（Günstigerprüfung-Ergebnis inkl. ggf. Hinzurechnung Kindergeld-Anteil） */
   assessedIncomeTax: number;
-  /** Solidaritätszuschlag（§§ 1 ff. SolzG）basierend auf assessedIncomeTax，Einzelveranlagung */
+  /** Bemessungsgrundlage fuer Zuschlagsteuern nach § 51a EStG（ESt mit KFB, ohne Kindergeld-Hinzurechnung） */
+  zuschlagsteuerBaseIncomeTax: number;
+  /** Solidaritätszuschlag（§§ 1 ff. SolzG）basierend auf §-51a-Bemessungsgrundlage，Einzelveranlagung */
   soli: number;
-  /** Kirchensteuer（8 % BY/BW，sonst 9 % der festzus. ESt；0 wenn nicht kirchensteuerpflichtig） */
+  /** Kirchensteuer（8 % BY/BW，sonst 9 % der §-51a-Bemessungsgrundlage；0 wenn nicht kirchensteuerpflichtig） */
   kirchensteuer: number;
 }
 
@@ -174,6 +219,10 @@ export interface JointTaxResult {
   severanceJoint: number;
   /** Summiertes ALG I beider Ehegatten（§ 32b Progressionsvorbehalt auf gemeinsamer Basis） */
   unemploymentBenefitJoint: number;
+  /** Summierter Pauschbetragsabzug vom ALG I fuer § 32b. */
+  unemploymentBenefitPauschbetragDeductionJoint: number;
+  /** Summiertes ALG I nach Pauschbetragsabzug fuer § 32b. */
+  unemploymentBenefitJointForProgression: number;
   /** Tarifliche ESt nach §§ 32a Abs. 5 / 32b / 34 - ohne KFB-Abzug, Splittingtarif */
   tarifIncomeTaxWithoutKFB: number;
   /** Tarifliche ESt nach §§ 32a Abs. 5 / 32b / 34 - mit vollem KFB-Abzug, Splittingtarif */
@@ -186,9 +235,11 @@ export interface JointTaxResult {
   kfbPreferred: boolean;
   /** Festzusetzende ESt（gemeinsam，ggf. inkl. Hinzurechnung Kindergeld bei KFB-Wahl） */
   assessedIncomeTax: number;
-  /** Solidaritätszuschlag bei Zusammenveranlagung（Freigrenze 39.900 €，Milderungszone bis 67.824 €） */
+  /** Gemeinsame Bemessungsgrundlage fuer Zuschlagsteuern nach § 51a EStG（ESt mit KFB, ohne Kindergeld-Hinzurechnung） */
+  zuschlagsteuerBaseIncomeTaxJoint: number;
+  /** Solidaritätszuschlag bei Zusammenveranlagung（Freigrenze 40.700 €，Milderungszone bis ca. 75.678 €） */
   soli: number;
-  /** Kirchensteuer gemeinsam（Summe der individuellen Anteile beider Ehegatten） */
+  /** Kirchensteuer gemeinsam（App-Annahme: beide Ehegatten gleicher Kirchensteuerstatus） */
   kirchensteuer: number;
 }
 

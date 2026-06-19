@@ -44,18 +44,31 @@ export const KFB_FULL_PER_CHILD_2026 = 9_756;
 export const KFB_HALF_PER_CHILD_2026 = KFB_FULL_PER_CHILD_2026 / 2; // 4.878 €
 // Kindergeld pro Kind und Monat (seit 01.01.2025 einheitlich 259 €)
 export const KINDERGELD_PER_MONTH_PER_CHILD_2026 = 259;
+// Entlastungsbetrag fuer Alleinerziehende (§ 24b EStG): 4.260 € + 240 € je weiterem Kind.
+export const ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_BASE_2026 = 4_260;
+export const ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_ADDITIONAL_CHILD_2026 = 240;
 
 // ---- Sozialversicherung 2026 (West/einheitlich) ----
 // Beitragsbemessungsgrenzen (monatlich)
 export const BBG_KV_PV_MONTHLY_2026 = 5_812.5; // 69.750 €/Jahr
 export const BBG_RV_ALV_MONTHLY_2026 = 8_450; // 101.400 €/Jahr (einheitlich seit 2025)
 
+// Krankenversicherung
+export const ALLGEMEINER_KV_RATE = 0.146; // § 241 SGB V
+export const ERMAESSIGTER_KV_RATE = 0.14; // § 243 SGB V, ohne Krankengeldanspruch
+
 // AN-Anteile (Standardsaetze)
-export const PV_RATE_AN_WITH_CHILD = 0.018; // 1,80 % (mind. 1 Kind, kein Zuschlag)
+export const PV_RATE_TOTAL_WITH_CHILD = 0.036; // 3,60 % Mitgliedsbeitrag
+export const PV_RATE_AN_WITH_CHILD = 0.018; // 1,80 % (Eltern / unter 23, ohne Kinderlosenzuschlag)
 // Sachsen: AN traegt seit 1995 0,5 pp mehr als die anderen Bundeslaender
 // (Buß- und Bettag wurde nicht gestrichen -> kein hälftiger Splitt). Mit Kind:
 // AN = 1,80 % + 0,50 pp = 2,30 % der beitragspflichtigen Einnahmen.
 export const PV_RATE_AN_WITH_CHILD_SACHSEN = 0.023;
+// § 55 Abs. 3 SGB XI: Kinderlose zahlen ab vollendetem 23. Lebensjahr +0,60 pp.
+export const PV_CHILDLESS_SURCHARGE_RATE = 0.006;
+// § 55 Abs. 3 SGB XI: ab dem 2. bis zum 5. Kind unter 25 jeweils -0,25 pp.
+export const PV_CHILD_DISCOUNT_RATE = 0.0025;
+export const PV_CHILD_DISCOUNT_MAX_CHILDREN = 5;
 export const RV_RATE_AN = 0.093; // 9,30 %
 export const ALV_RATE_AN = 0.013; // 1,30 %
 // KV-AN-Satz = healthInsuranceRate / 2 (allgemeiner Satz 14,6 % + Zusatzbeitrag, jeweils hälftig)
@@ -79,18 +92,19 @@ export const VORSORGE_BASIS_HOECHSTBETRAG_2026 = 30_230;
 export const SPENDEN_HOECHSTGRENZE_RATE = 0.2;
 
 // ---- Solidaritätszuschlag (Soli) 2026 ----
-// Freigrenze (Einzelveranlagung): 19.950 € ESt; Milderungszone bis 33.912 €
-export const SOLI_FREIGRENZE_SINGLE_2026 = 19_950;
-export const SOLI_OBERGRENZE_SINGLE_2026 = 33_912;
-// Freigrenze (Zusammenveranlagung): 39.900 € ESt; Milderungszone bis 67.824 € (jeweils verdoppelt)
-export const SOLI_FREIGRENZE_JOINT_2026 = 39_900;
-export const SOLI_OBERGRENZE_JOINT_2026 = 67_824;
+// Freigrenze (Einzelveranlagung): 20.350 € ESt; Milderungszone bis ca. 37.839 €
+export const SOLI_FREIGRENZE_SINGLE_2026 = 20_350;
+export const SOLI_OBERGRENZE_SINGLE_2026 = 37_839;
+// Freigrenze (Zusammenveranlagung): 40.700 € ESt; Milderungszone bis ca. 75.678 €
+export const SOLI_FREIGRENZE_JOINT_2026 = 40_700;
+export const SOLI_OBERGRENZE_JOINT_2026 = 75_678;
 export const SOLI_RATE = 0.055;
 export const SOLI_MILDERUNGSZONE_RATE = 0.119;
 
 // ---- Kirchensteuer ----
 // 8 % in Bayern und Baden-Württemberg, 9 % in allen übrigen Bundesländern.
-// Bemessungsgrundlage: festzusetzende ESt (vereinfacht ohne Kinderfreibetrag-Hinzurechnung).
+// Bemessungsgrundlage: ESt nach § 51a EStG; Kinderfreibetraege werden fuer
+// Zuschlagsteuern beruecksichtigt, ohne Kindergeld-Hinzurechnung.
 export const KIST_RATE_BY_BW = 0.08;
 export const KIST_RATE_OTHER = 0.09;
 

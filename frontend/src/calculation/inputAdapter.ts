@@ -13,9 +13,8 @@
 //   sodass die Engine unverändert mit zwei Personen rechnen kann.
 
 import type { PersonProfile, PersonIncomeData } from '../calculation/types';
+import { ALLGEMEINER_KV_RATE } from '../calculation/constants';
 import type { InsuranceKind, SocialInsuranceKind, UserInputSnapshot } from '../composables/useUserInput';
-
-const ALLGEMEINER_KV_RATE = 0.146; // § 241 SGB V
 
 function isSvSubject(v: SocialInsuranceKind): boolean {
   return v === 'statutoryMandatory' || v === 'employeeOnly';
@@ -39,16 +38,30 @@ function parseTaxClass(s: string): number {
   return Number.isFinite(n) && n >= 1 && n <= 6 ? n : 1;
 }
 
-/** § 147 SGB III (vereinfacht): Anspruchsdauer ALG I aus Alter ableiten. */
-function deriveAlgDurationMonths(age: number): number {
-  if (age >= 58) return 24;
-  if (age >= 55) return 18;
-  if (age >= 50) return 15;
-  return 12;
+/** § 147 SGB III: Anspruchsdauer ALG I aus Alter und Versicherungsmonaten ableiten. */
+function deriveAlgDurationMonths(age: number, insuranceMonthsLast5Years: number): number {
+  const months = Math.max(0, Math.min(60, Math.floor(insuranceMonthsLast5Years)));
+  if (age >= 58 && months >= 48) return 24;
+  if (age >= 55 && months >= 36) return 18;
+  if (age >= 50 && months >= 30) return 15;
+  if (months >= 24) return 12;
+  if (months >= 20) return 10;
+  if (months >= 16) return 8;
+  if (months >= 12) return 6;
+  return 0;
 }
 
 function parseIso(s: string | null): Date | null {
   if (!s) return null;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]) - 1;
+    const day = Number(dateOnly[3]);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return d;
+    return null;
+  }
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -73,8 +86,10 @@ export function inputToProfileUser(s: UserInputSnapshot): PersonProfile {
     privateAnnualPV: s.privateCareInsuranceAnnual,
     pensionInsurance: isSvSubject(s.pensionInsurance),
     unemploymentInsurance: isSvSubject(s.unemploymentInsurance),
+    activeTaxSubject: true,
     hasChildren: s.hasChildren,
-    childrenUnder25: s.childrenUnder25
+    childrenUnder25: s.childrenUnder25,
+    singleParentReliefEligible: !s.withSpouse && s.hasChildren && s.childrenUnder25 > 0 && s.isAlleinerziehend
   };
 }
 
@@ -95,8 +110,10 @@ function nullSpouseProfile(s: UserInputSnapshot): PersonProfile {
     healthInsuranceRate: ALLGEMEINER_KV_RATE,
     pensionInsurance: false,
     unemploymentInsurance: false,
+    activeTaxSubject: false,
     hasChildren: s.hasChildren,
-    childrenUnder25: s.childrenUnder25
+    childrenUnder25: s.childrenUnder25,
+    singleParentReliefEligible: false
   };
 }
 
@@ -106,7 +123,9 @@ export function inputToProfileSpouse(s: UserInputSnapshot): PersonProfile {
     personKey: 'spouse',
     age: s.spouseAge,
     taxClass: parseTaxClass(s.spouseTaxClass),
-    churchTax: s.spousePaysChurchTax,
+    // Produktannahme: Familie modelliert keinen gemischten Kirchensteuerstatus.
+    // Der gemeinsame Schalter beim User gilt fuer beide Ehegatten.
+    churchTax: s.paysChurchTax,
     state: s.federalState ?? '',
     healthInsuranceRate: fullKvRate(s.spouseHealthInsuranceAdditionalRate),
     kvKind: isPkv(s.spouseHealthInsurance) ? 'pkv' : 'gkv',
@@ -114,8 +133,10 @@ export function inputToProfileSpouse(s: UserInputSnapshot): PersonProfile {
     privateAnnualPV: s.spousePrivateCareInsuranceAnnual,
     pensionInsurance: isSvSubject(s.spousePensionInsurance),
     unemploymentInsurance: isSvSubject(s.spouseUnemploymentInsurance),
+    activeTaxSubject: true,
     hasChildren: s.hasChildren,
-    childrenUnder25: s.childrenUnder25
+    childrenUnder25: s.childrenUnder25,
+    singleParentReliefEligible: false
   };
 }
 
@@ -126,6 +147,7 @@ export function inputToIncomeUser(s: UserInputSnapshot): PersonIncomeData {
   // Beispiel: Arbeitslos ab 01.08.2026 -> 7 Arbeitsmonate (Jan..Jul) -> /7.
   const monthsWorkedThisYear = unemploymentDate ? Math.max(unemploymentDate.getMonth(), 1) : 12;
   const monthlyGrossOldJob = s.oldEmployerIncomeCurrentYear / monthsWorkedThisYear;
+  const lastMonthlyGrossBeforeUnemployment = s.lastMonthlyGrossBeforeUnemployment > 0 ? s.lastMonthlyGrossBeforeUnemployment : monthlyGrossOldJob;
 
   const userIncomeShare = s.withSpouse ? s.sharedIncomeUserShare / 100 : 1;
   const userDonationShare = s.withSpouse ? s.sharedDonationUserShare / 100 : 1;
@@ -140,7 +162,7 @@ export function inputToIncomeUser(s: UserInputSnapshot): PersonIncomeData {
     unemploymentDate && algShiftMonths > 0
       ? new Date(unemploymentDate.getFullYear(), unemploymentDate.getMonth() + algShiftMonths, unemploymentDate.getDate())
       : unemploymentDate;
-  const fullDuration = deriveAlgDurationMonths(s.age);
+  const fullDuration = deriveAlgDurationMonths(s.age, s.alvInsuranceMonthsLast5Years);
   // ALG-I-Anspruch besteht nur, wenn der User in den letzten 12 Monaten Beiträge zur ALV
   // geleistet hat (= AN-pflichtbeitrag). 'notMandatory' (z.B. Beamte, Selbstständige) und
   // 'employerOnly' bedeuten keinen AN-Beitrag -> kein ALG-Anspruch (§ 142 SGB III).
@@ -154,6 +176,7 @@ export function inputToIncomeUser(s: UserInputSnapshot): PersonIncomeData {
   return {
     personKey: 'user',
     monthlyGrossOldJob,
+    lastMonthlyGrossBeforeUnemployment,
     unemployed: !!unemploymentDate,
     unemploymentDate,
     algStartDate,
@@ -172,6 +195,7 @@ export function inputToIncomeSpouse(s: UserInputSnapshot): PersonIncomeData {
     return {
       personKey: 'spouse',
       monthlyGrossOldJob: 0,
+      lastMonthlyGrossBeforeUnemployment: 0,
       unemployed: false,
       unemploymentDate: null,
       algStartDate: null,
@@ -190,6 +214,7 @@ export function inputToIncomeSpouse(s: UserInputSnapshot): PersonIncomeData {
   return {
     personKey: 'spouse',
     monthlyGrossOldJob: s.spouseGrossIncomeYearly / 12,
+    lastMonthlyGrossBeforeUnemployment: s.spouseGrossIncomeYearly / 12,
     unemployed: false,
     unemploymentDate: null,
     algStartDate: null,

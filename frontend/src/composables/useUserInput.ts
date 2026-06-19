@@ -14,6 +14,7 @@ export interface UserInputSnapshot {
   privateCareInsuranceAnnual: number;
   hasChildren: boolean;
   childrenUnder25: number;
+  isAlleinerziehend: boolean;
   childAllowance: number;
   childBenefitMonthlyPerChild: number;
   age: number;
@@ -41,7 +42,9 @@ export interface UserInputSnapshot {
   severanceGross: number;
   unemploymentDate: string | null;
   oldEmployerIncomeCurrentYear: number;
+  lastMonthlyGrossBeforeUnemployment: number;
   unemploymentBenefitMonthly: number;
+  alvInsuranceMonthsLast5Years: number;
   hasBenefitReductionPeriod: boolean;
   benefitReductionMonths: number;
   hasBenefitSuspensionPeriod: boolean;

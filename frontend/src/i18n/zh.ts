@@ -55,6 +55,7 @@ export default {
       '<p>工资税等级 <strong>IV mit Faktor</strong>（带因子的 IV 类）中的<strong>因子 (Faktor)</strong> 把双方配偶的<strong>每月工资税预扣额 (Lohnsteuer-Vorauszahlung)</strong> 在全年中更公平地分摊。</p><p><strong>说明：</strong>本应用计算的是<strong>年度所得税 (Jahres-Einkommensteuer)</strong> 的核定 (Veranlagung)，并不是月工资税。因此该因子<strong>不会</strong>影响最终结果——这里仅为参考，不会传入计算引擎。</p>',
     taxClassInfoAriaLabel: '关于工资税等级的提示',
     churchTax: '是否缴纳教会税 (Kirchensteuer)',
+    churchTaxInfoAriaLabel: '关于教会税的提示',
     federalState: '您所在的联邦州 (Bundesland)',
     federalStatePlaceholder: '选择联邦州',
     healthInsurance: '医疗保险 (Krankenversicherung)',
@@ -68,6 +69,8 @@ export default {
     hasChildren: '是否有子女？',
     careInsuranceInfoAriaLabel: '关于护理保险 (Pflegeversicherung) 的提示',
     childrenUnder25: '25 岁以下子女人数',
+    singleParentRelief: '您是单亲抚养人吗？',
+    singleParentReliefAriaLabel: '关于单亲减负额 (Entlastungsbetrag) 的提示',
     childAllowance: '子女免税额 (Kinderfreibetrag, KFB)',
     childAllowanceInfoAriaLabel: '关于 KFB 的提示',
     childBenefitMonthlyPerChild: '儿童金 (Kindergeld) 每月每个孩子',
@@ -101,10 +104,16 @@ export default {
     oldEmployerIncomeCurrentYearAriaLabel: '关于原雇主毛工资的提示',
     oldEmployerIncomeCurrentYearTooltip:
       '<p>失业当年从原雇主获得的<strong>毛工资 (Bruttoarbeitslohn)</strong> 总额 —— 区间为 <strong>1 月 1 日至失业开始前一天</strong>。</p><p>例：失业开始于 2026-08-01 → 此处填入 2026-01-01 至 2026-07-31 的毛工资（含休假/圣诞补贴，不含 Abfindung）。</p>',
+    lastMonthlyGrossBeforeUnemployment: '失业前最后一个月毛工资',
+    lastMonthlyGrossBeforeUnemploymentAriaLabel: '关于失业前最后月工资的提示',
+    lastMonthlyGrossBeforeUnemploymentTooltip:
+      '<p>这个月工资只用于粗略估算 ALG I 结束后的 GKV/PV 自付金额。</p><p>背景：根据 § 10 Abs. 1 S. 4 SGB V，Abfindung 可能阻止免费挂靠配偶 Familienversicherung。App 会把 Abfindung 简化摊到若干个月，并在 ALG I 结束后按 freiwillige GKV/PV 自付估算。</p><p>如果这里填 0 €，计算会退回使用旧工作平均月毛工资。例如 2026-08-01 开始失业，则用 1-7 月旧工作毛工资合计除以 7。</p>',
     unemploymentBenefitMonthly: 'ALG I（失业金）/ 月',
     unemploymentBenefitMonthlyAriaLabel: '关于 ALG I 计算的提示',
     unemploymentBenefitMonthlyTooltip:
       '<p><strong>每月 ALG I</strong> 的计算如下：</p><ol><li><strong>每日核算工资 (Bemessungsentgelt)</strong> = 失业前 12 个月的应税毛工资 ÷ 365。</li><li><strong>每日给付工资 (Leistungsentgelt)</strong> = 核算工资 − 概算工资税（按 Steuerklasse） − 概算社保支出 (21%)。</li><li><strong>给付率 (Leistungssatz)</strong>：给付工资的 60 %；若至少有一个被认定的子女则为 67 %（§ 149 SGB III）。</li><li><strong>月额</strong> = 日给付 × 30。</li></ol><p>精确数值可使用<strong>联邦劳工局 (Bundesagentur für Arbeit) 官方工具</strong>计算。</p>',
+    alvInsuranceMonthsLast5Years: '过去 5 年缴纳失业保险的月数',
+    alvInsuranceMonthsLast5YearsAriaLabel: '关于 ALG I 保险月份数的提示',
     unemploymentBenefitDurationMonths: 'ALG I 领取期限',
     hasBenefitReductionPeriod: '封锁期 (Sperrzeit)',
     benefitReductionMonths: '封锁期月数',
@@ -148,12 +157,16 @@ export default {
     ],
     healthInsuranceInfoTooltip:
       '<p><strong>法定医疗保险 (gesetzliche Krankenversicherung, GKV)</strong> 是雇员低于<strong>年工资上限 (Jahresarbeitsentgeltgrenze, JAEG)</strong> 时的强制保险 —— 2026 年为 73.800 € 毛额/年（§ 6 Abs. 1 Nr. 1 SGB V）。长期高于此线者可转入<strong>私人医疗保险 (PKV)</strong> 或自愿留在 GKV。</p><p><strong>法定强制参保</strong>：JAEG 以下雇员的标准方案 —— 雇主与雇员各承担一半。</p><p><strong>自愿法定参保</strong>：JAEG 以上仍留在 GKV（如转回者、自雇者）。</p><p><strong>私人保险</strong>：PKV 替代 GKV；保费视风险与方案而定，雇主补贴最多为 GKV 最高保费的一半。</p>',
+    churchTaxInfoTooltip:
+      '<p>教会税在 Bayern / Baden-Württemberg 通常为所得税核算基数的 <strong>8 %</strong>，其他州通常为 <strong>9 %</strong>。</p><p>有子女时，App 对 Soli / Kirchensteuer 使用 <strong>§ 51a EStG</strong> 下的核算基数：考虑 Kinderfreibetrag 后的 Einkommensteuer，不包含 Kindergeld 加回。</p><p><strong>家庭模式：</strong>App 默认夫妻双方的教会税状态相同；不单独建模“只有一方缴纳教会税”的情况。</p>',
     healthInsuranceRateInfoTooltip:
       '<p><strong>GKV 保险费率</strong>由两部分组成：</p><ul><li><strong>一般费率：14,60 %</strong>（§ 241 SGB V）—— 固定，雇主与雇员各负担一半。</li><li><strong>各保险公司额外保费 (Zusatzbeitrag)</strong>（§ 242a SGB V）—— 各家保险公司自行制定。2026 年平均约 2,90 %；请填写您所在保险公司的具体值。自 2019 年起也由双方平摊。</li></ul><p>雇员部分 = (14,60 % + Zusatzbeitrag) ÷ 2，并受核算上限 (Beitragsbemessungsgrenze, BBG) 限制（2026: 5.812,50 €/月）。</p>',
     careInsuranceInfoTooltip:
-      '<p><strong>护理保险 (Pflegeversicherung) 2026</strong>：核算工资在 BBG（5.812,50 €/月）以内的部分，费率为 3,60 %（无子女者 4,20 %）。</p><p>雇主与雇员各负担一半（各 1,80 %），萨克森州除外。无子女者额外的 0,60 个百分点附加费<strong>不</strong>由雇主分担。</p><p>25 岁以下子女可减轻雇员负担：免除无子女附加费；自第 2 个孩子起每增加一个孩子，PV 缴费率降低 0,25 个百分点（最多 5 个孩子）。</p>',
+      '<p><strong>护理保险 (Pflegeversicherung) 2026</strong>：核算工资在 BBG（5.812,50 €/月）以内的部分，费率为 3,60 %（无子女者 4,20 %）。</p><p>雇主与雇员各负担一半（各 1,80 %），萨克森州除外：萨克森州雇员额外承担 0,50 个百分点。无子女者额外的 0,60 个百分点附加费<strong>不</strong>由雇主分担。</p><p>25 岁以下子女可减轻雇员负担：免除无子女附加费；自第 2 个孩子起每增加一个孩子，PV 缴费率降低 0,25 个百分点（最多 5 个孩子）。</p>',
     privateInsuranceDeductibleTooltip:
       '<p>仅私人 KV/PV 的<strong>基础部分 (Basisanteil)</strong> 可作为 Sonderausgabe 抵扣。</p><p>舒适和可选项目不在抵扣范围内。</p><p><strong>关于失业期的简化说明：</strong>领取 ALG I 期间，联邦劳工局 (BA) 会为 PKV 投保人提供最高相当于虚拟 GKV 缴费的补贴（§ 174 SGB III）—— 因此您此处填写的基础部分在失业月份事实上大部分会被覆盖。本应用仍然按全年基础保费计算，不扣除 BA 补贴。这会略微高估「躺平」情景下的 PKV 成本，从而让 Netto 结果偏向保守（倾向于「找新工作更划算」）。</p>',
+    singleParentReliefTooltip:
+      '<p><strong>§ 24b EStG</strong>：仅当至少一个有 Kindergeld 或 Kinderfreibetrag 资格的孩子属于您的家庭，并且您没有和另一名成年人成立共同生活家庭时适用。</p><p>2026 年：第一个孩子 <strong>4.260 €</strong>，每增加一个孩子再加 <strong>240 €</strong>。只有您在这里确认符合条件时，App 才会把该金额纳入计算。</p>',
     childAllowanceInfoTooltip:
       '<p><strong>子女免税额 (Kinderfreibetrag, KFB + BEA = 9.756 € / 子女, 2026)</strong> 在「优惠核查 (Günstigerprüfung)」中替代 Kindergeld。</p><p>0,5 = 父母各一半，1,0 = 全部转移到此人。</p><p><strong>说明：</strong>本应用目前在 Einzelveranlagung（单独核定）下始终按<strong>父母各一半</strong>处理，在 Zusammenveranlagung（共同报税）下使用<strong>整额 KFB</strong>。其他转移情形（§ 32 Abs. 6 EStG）<strong>暂不</strong>纳入计算，仅供参考。</p>',
     childBenefitInfoTooltip: '<p><strong>Kindergeld（儿童金）</strong> 2026: 每个孩子 259 €/月 (= 3.108 €/年)。</p>',
@@ -161,8 +174,10 @@ export default {
       '<p><strong>法定养老保险 (gesetzliche Rentenversicherung)</strong> 是德国社保体系的一支，主要为雇员提供养老保障。</p><p>德国原则上<strong>强制参保</strong>。例外包括公务员、法官、军人及其他公共机构雇员，以及许多自雇者（通过 Versorgungswerk 或私人养老金独立保障）。</p><p><strong>强制参保</strong>：雇员标准方案 —— 雇员部分从毛工资中预扣。</p><p><strong>非强制参保</strong>：公务员、无 RV 义务的自雇者 —— 无雇员缴费。</p>',
     unemploymentInsuranceInfoTooltip:
       '<p><strong>失业保险 (Arbeitslosenversicherung)</strong> 在求职期间提供收入保障，并资助联邦劳工局的咨询与中介服务。</p><p>原则上对所有受雇人员<strong>强制参保</strong>；例外包括自雇者及在欧盟以外地区受雇者。</p><p><strong>2026 年费率：2,60 %</strong>（应税毛工资）—— 雇主与雇员各负担一半（各 1,30 %）。</p><p><strong>强制参保</strong>：雇员标准方案。</p><p><strong>非强制参保</strong>：如公务员、自雇者 —— 无 ALG I 领取权。</p>',
+    alvInsuranceMonthsLast5YearsTooltip:
+      '<p>根据 <strong>§ 147 SGB III</strong>，ALG I 领取期限取决于年龄，以及过去 5 年内缴纳失业保险的<strong>累计</strong>月份数。</p><p>这些月份<strong>不要求连续</strong>，中间可以有间断；关键是累计月数。同时，基本领取权还需要满足 Anwartschaftszeit（通常为过去 30 个月内至少 12 个月）。</p>',
     unemploymentBenefitDurationTooltip:
-      '<p>ALG I 领取期限按 <strong>§ 147 SGB III</strong>（简化）：</p><ul><li>≥ 58 岁：24 个月</li><li>≥ 55 岁：18 个月</li><li>≥ 50 岁：15 个月</li><li>其他：12 个月</li></ul>',
+      '<p>ALG I 领取期限按 <strong>§ 147 SGB III</strong> 由年龄和保险月份共同决定。</p><ul><li>12 / 16 / 20 / 24 个保险月 → 6 / 8 / 10 / 12 个月 ALG I</li><li>满 50 岁 + 30 个保险月 → 15 个月</li><li>满 55 岁 + 36 个保险月 → 18 个月</li><li>满 58 岁 + 48 个保险月 → 24 个月</li></ul>',
     benefitReductionPeriodTooltip:
       '<p><strong>封锁期 (Sperrzeit)</strong>（§ 159 SGB III）：联邦劳工局认为失业是参保人在没有正当理由下自行造成时会施加。封锁期内<strong>不发放 ALG I</strong>；同时<strong>领取期限相应缩短</strong>。</p><p><strong>常见情形：</strong></p><ul><li><strong>因辞职导致的封锁</strong>：无正当理由（如被孤立、即将面临裁员）的自我离职或协议解除 —— 通常 <strong>12 周</strong>。</li><li><strong>拒绝合理工作机会</strong>：3、6 或 12 周（视重复次数）。</li><li><strong>努力不足</strong>或迟报失业（§ 38 SGB III）—— 通常 1 周。</li><li><strong>错过预约</strong>或拒绝参与培训 —— 1 周或更多。</li></ul><p><strong>后果：</strong>ALG I 起付推迟、最长领取期缩短，累计封锁 ≥ 21 周时整个权利失效。</p>',
     benefitSuspensionPeriodTooltip:
@@ -346,23 +361,27 @@ export default {
       },
       arbeitslosengeld: {
         title: 'ALG I（Progressionsvorbehalt 累进保留）',
-        note: 'ALG I 免税，<strong>不</strong>计入 zvE，仅提高税率（Progressionsvorbehalt）。'
+        note: 'ALG I 免税，<strong>不</strong>计入 zvE。计算税率时，会先扣除未被工资使用掉的 Arbeitnehmer-Pauschbetrag (§ 32b Abs. 2 EStG)，剩余部分才进入 Progressionsvorbehalt。'
       },
       incomeRelatedExpenses: {
         title: 'Werbungskosten（雇员定额扣除）',
-        legalBasis: '§ 9a Satz 1 Nr. 1 Buchst. a EStG —— 每位有工资的雇员 1.230 €'
+        legalBasis: '§ 9a Satz 1 Nr. 1 Buchst. a EStG —— 最高 1.230 €，但不超过工资；未用部分用于降低 § 32b 的 ALG 基数'
       },
       rentalIncomeNet: {
         title: '出租与租赁收入 (V&V)',
         legalBasis: '§ 21 EStG（简化，按净额，不含 AfA / 其他 Werbungskosten）。其他收入 (§ 22 EStG) 也并入收入合计 (Gesamtbetrag der Einkünfte)。'
+      },
+      singleParentRelief: {
+        title: '单亲减负额 (Entlastungsbetrag)',
+        legalBasis: '§ 24b EStG —— 第一个孩子 4.260 €，每增加一个孩子 +240 €；仅在输入中确认符合条件时计算'
       },
       vorsorge: {
         title: 'Vorsorgeaufwendungen（养老/医疗/护理预扣，Sonderausgaben）',
         legalBasis: '§ 10 Abs. 1 Nr. 2 + 3 EStG'
       },
       spenden: {
-        title: '捐赠 (Spenden)',
-        legalBasis: '§ 10b EStG —— 上限为收入合计的 20 %'
+        title: '捐赠 / Sonderausgaben-Pauschbetrag',
+        legalBasis: '§§ 10b, 10c EStG —— 可扣捐赠额或 36 € 定额扣除，两者取较高值'
       },
       zvE: {
         title: '应税所得 zvE（不含 KFB）',
@@ -370,27 +389,27 @@ export default {
       },
       kv: {
         title: '医疗保险 (KV-AN)',
-        legalBasis: 'GKV: min(月毛 ; 5.812,50 €) × KV 费率/2 × 月数 —— PKV: 输入的固定年保费（不受 BBG 限制）'
+        legalBasis: '就业期间：GKV 按半额。ALG I 结束后仍无新工作：按最后月工资/Abfindung 估算 freiwillige GKV 自付（§§ 10, 240, 243 SGB V）'
       },
       pv: {
         title: '护理保险 (PV-AN)',
-        legalBasis: 'GKV: min(月毛 ; 5.812,50 €) × 1,80 %（萨克森 2,30 %）× 月数 —— PKV: 输入的固定年保费'
+        legalBasis: '就业期间：按子女状态/萨克森计算 PV 雇员部分。ALG I 结束后仍无新工作：按子女状态全额自付 PV'
       },
       rv: {
         title: '养老保险 (RV-AN)',
-        legalBasis: 'min(月毛 ; 8.450,00 €) × 9,30 % × 月数'
+        legalBasis: '仅就业月份：min(月毛 ; 8.450,00 €) × 9,30 % × 月数；ALG I 结束后失业状态不自动产生强制缴费'
       },
       alv: {
         title: '失业保险 (ALV-AN)',
-        legalBasis: 'min(月毛 ; 8.450,00 €) × 1,30 % × 月数'
+        legalBasis: '仅就业月份：min(月毛 ; 8.450,00 €) × 1,30 % × 月数；ALG I 结束后失业状态不自动产生强制缴费'
       },
       sozialabgabenGesamt: {
         title: '社保合计（雇员部分）',
-        legalBasis: '= KV + PV + RV + ALV —— 领取 ALG I 期间不缴费'
+        legalBasis: '= KV + PV + RV + ALV —— 领取 ALG I 期间个人不自付；ALG I 结束后可能有 KV/PV 自付'
       },
       tariffIncomeTaxWithoutKFB: {
         title: '不含 KFB 的 Tarif-ESt',
-        legalBasis: '基础税表 (§ 32a Abs. 1) + 自身 ALG 的 ProgrV (§ 32b) + Abfindung 的 Fünftelregelung (§ 34)'
+        legalBasis: '基础税表 (§ 32a Abs. 1) + ALG 扣除未用 APB 后的 ProgrV (§ 32b) + Abfindung 的 Fünftelregelung (§ 34)'
       },
       tariffIncomeTaxWithKFB: {
         title: '含 KFB 半额的 Tarif-ESt',
@@ -410,11 +429,11 @@ export default {
       },
       soli: {
         title: '团结税 Solidaritätszuschlag',
-        legalBasis: '§§ 1, 4 SolzG —— 起征点 19.950 €（单人）, 减缓段 11,9 %, 上限 5,5 %'
+        legalBasis: '§§ 1, 3, 4 SolzG 结合 § 51a EStG —— 含 KFB 的基数；起征点 20.350 € / 40.700 €'
       },
       steuerGesamt: {
         title: '税款合计',
-        legalBasis: '= Festzus. ESt + Soli + Kirchensteuer（BY/BW 8 %, 其他 9 %; 不缴教会税则为 0 €）'
+        legalBasis: '= Festzus. ESt + Soli + Kirchensteuer；Soli/教会税使用含 KFB 的 §51a 基数（教会税 BY/BW 8 %, 其他 9 %）'
       },
       bruttoeinnahmen: {
         title: '毛收入合计（所有现金流入）',
@@ -441,36 +460,106 @@ export default {
     nettoSuffix: 'Netto',
     childUnit: { one: '个孩子', many: '个孩子' },
     popover: {
+      kv: {
+        formula: [
+          '医疗保险：',
+          '',
+          '就业月份：min(月毛, KV/PV BBG) × (14,6 % + Zusatzbeitrag) / 2 × 月数。',
+          '领取 ALG I 期间：个人不自付，费用由 Bundesagentur für Arbeit 承担。',
+          'ALG I 结束后仍无新工作：如果 Abfindung 根据 § 10 Abs. 1 S. 4 SGB V 阻止 Familienversicherung，',
+          'App 会估算 freiwillige GKV 自付：',
+          'min(最后月毛, KV/PV BBG) × (14,0 % ermäßigter Satz + Zusatzbeitrag) × 月数。',
+          '',
+          '这段自付期不会自动产生 RV/ALV 强制缴费。'
+        ],
+        detailWithoutSelfPay: ['就业期间 / PKV 输入保费 = {employment}', 'ALG I 结束后的 KV 自付 = 0 €', '', '→ KV 合计 = {total}'],
+        detailWithSelfPay: [
+          '就业期间 / PKV 输入保费 = {employment}',
+          '',
+          'ALG I 结束后的 KV 自付：',
+          '最后月毛工资（输入/自动计算） = {gross}',
+          'KV/PV-BBG 2026               = {bbg}',
+          'Bemessungsgrundlage          = min({gross}, {bbg}) = {base}',
+          '月数                         = {months}',
+          '费率                         = {rate}',
+          '每月自付                     = {monthlySelfPay}',
+          '自付合计                     = {monthlySelfPay} × {months} = {selfPay}',
+          '',
+          '→ KV 合计 = {employment} + {selfPay} = {total}'
+        ]
+      },
+      pv: {
+        formula: [
+          '护理保险：',
+          '',
+          '就业月份：min(月毛, KV/PV BBG) × PV 雇员费率 × 月数。',
+          'PV 雇员费率会考虑无子女附加费、多子女折扣和萨克森规则。',
+          'ALG I 结束后仍无新工作：在同一核算基础上估算 PV 全额自付。',
+          '自付时不再有雇主/萨克森分摊，按成员本人子女状态的全额费率计算。',
+          '',
+          '这段自付期不会自动产生 RV/ALV 强制缴费。'
+        ],
+        detailWithoutSelfPay: ['就业期间 / PKV 输入保费 = {employment}', 'ALG I 结束后的 PV 自付 = 0 €', '', '→ PV 合计 = {total}'],
+        detailWithSelfPay: [
+          '就业期间 / PKV 输入保费 = {employment}',
+          '',
+          'ALG I 结束后的 PV 自付：',
+          '最后月毛工资（输入/自动计算） = {gross}',
+          'KV/PV-BBG 2026               = {bbg}',
+          'Bemessungsgrundlage          = min({gross}, {bbg}) = {base}',
+          '月数                         = {months}',
+          '费率                         = {rate}',
+          '每月自付                     = {monthlySelfPay}',
+          '自付合计                     = {monthlySelfPay} × {months} = {selfPay}',
+          '',
+          '→ PV 合计 = {employment} + {selfPay} = {total}'
+        ]
+      },
       vorsorge: {
         formula: [
-          'Vorsorgeaufwendungen = RV-AN + KV-AN × 0,96 + PV-AN',
+          'Vorsorgeaufwendungen = RV-AN + KV-Basis + PV-AN',
           '',
           '   RV-AN: 100 % 作为基础养老金抵扣（§ 10 Abs. 1 Nr. 2 EStG，自 2023 全额）',
-          '   KV-AN: 仅 96 %（4 % 病假津贴部分不可抵扣，§ 10 Abs. 1 Nr. 3 Satz 4 EStG）',
+          '   就业期间 KV: 仅 96 %（4 % Krankengeld 部分不可抵扣，§ 10 Abs. 1 Nr. 3 Satz 4 EStG）',
+          '   ALG I 结束后的 KV 自付: 无 Krankengeld Anspruch，按 100 % 计入',
           '   PV-AN: 100 % 抵扣（§ 10 Abs. 1 Nr. 3 Buchst. a EStG）',
           '   ALV-AN: 不作为 Sonderausgabe 抵扣（仅在「其他 Vorsorge」定额中）',
           '',
           '此处简化省略上限测算（在本应用涉及的收入水平下不敏感）。'
         ],
         detail: [
-          'RV-AN              = {rv}            (× 100 %)',
-          'KV-AN              = {kv}',
-          'KV-AN × 0,96       = {kvDeduct}',
-          'PV-AN              = {pv}            (× 100 %)',
+          'RV-AN                    = {rv}            (× 100 %)',
+          '就业期间 KV              = {kvEmployment}',
+          '就业期间 KV × 0,96       = {kvEmploymentDeduct}',
+          'ALG I 后 KV 自付          = {kvSelfPaid}    (× 100 %)',
+          'KV-Basis 合计             = {kvDeduct}',
+          'PV-AN                     = {pv}            (× 100 %)',
           '',
-          '→ Vorsorge 抵扣   = {rv} + {kvDeduct} + {pv}',
-          '                  = {total}'
+          '→ Vorsorge 抵扣           = {rv} + {kvDeduct} + {pv}',
+          '                          = {total}'
         ]
       },
       fuenftel: {
-        head: ['zvE_ord（不含 Abfindung） = {zvEord}', 'Abfindung                = {abfindung}', 'ALG (§ 32b)              = {alg}'],
-        progrVWithAlg: ['ProgrV 税率 = ESt({sumPlain})/{sumPlain} = {ratePct} %', '基础 ESt    = {ratePct} % × {zvEordPlain} = {sockel}'],
-        progrVWithoutAlg: ['基础 ESt    = 基础税表({zvEordPlain}) = {sockel}'],
+        head: ['zvE_ord（不含 Abfindung） = {zvEOrd}', 'Abfindung                = {abfindung}', 'ALG (§ 32b，发放额)      = {alg}'],
+        progrVWithAlg: [
+          '减：未使用的 Arbeitnehmer-Pauschbetrag = {apbDeduction}',
+          '进入 ProgrV 的 ALG = {algForProgression}',
+          'ProgrV 税率 = ESt({zvEOrdPlain} + {algForProgressionPlain})/{sumPlain} = {ratePct} %',
+          '基础 ESt    = {ratePct} % × {zvEOrdPlain} = {sockel}'
+        ],
+        progrVWithoutAlg: ['基础 ESt    = 基础税表({zvEOrdPlain}) = {sockel}'],
         fuenftelWithAbf: [
           '1/5 Abfindung      = {fuenftelBetrag}',
           'ESt(zvE_ord + 1/5) = {estMitFuenftel}',
           '§ 34 增量          = 5 × ({estMitPlain} − {sockelPlain}) = {zusatz}',
           '→ ESt = 基础 + 增量 = {total}'
+        ],
+        fuenftelNegativeOrdinary: [
+          '§ 34 Abs. 1 Satz 3：zvE_ord 为负，但总 zvE 为正。',
+          '总 zvE = zvE_ord + Abfindung = {totalZvE}',
+          '总 zvE 的 1/5 = {satz3Base}',
+          'ESt(总 zvE 的 1/5) = {estSatz3Base}',
+          '→ ESt = 5 × {estSatz3BasePlain} = {total}'
         ],
         fuenftelWithoutAbf: ['→ ESt = 基础（无 Abfindung） = {sockel}']
       },
@@ -482,7 +571,8 @@ export default {
           'zvE_ord 是不含 Abfindung 的常规 zvE。Abfindung 通过 Fünftelregelung',
           '单独处理，仅以增量形式叠加。',
           '',
-          'ESt(·) 含 ProgrV § 32b：特别税率 = 基础税表(zvE+ALG) / (zvE+ALG)',
+          'ESt(·) 含 ProgrV § 32b：ALG 先扣除未使用的 Arbeitnehmer-Pauschbetrag (§ 9a)。',
+          '特别税率 = 基础税表(zvE + 进入 ProgrV 的 ALG) / (zvE + 进入 ProgrV 的 ALG)',
           '基础税表：起征点 12.348 €，之后 4 个区段（§ 32a Abs. 1 EStG）'
         ]
       },
@@ -529,19 +619,20 @@ export default {
       },
       soli: {
         formula: [
-          '团结税 Solidaritätszuschlag（单独核定 2026）：',
+          '团结税 Solidaritätszuschlag 2026：',
           '',
-          '   若 festzus. ESt ≤ 19.950 €  → Soli = 0 €（起征点）',
+          '   单独核定：若 §51a 基数 ≤ 20.350 €  → Soli = 0 €（起征点）',
+          '   共同核定：若 §51a 基数 ≤ 40.700 €  → Soli = 0 €（起征点）',
           '',
-          '   否则：Soli = min( 5,5 % × ESt ; 11,9 % × (ESt − 19.950) )',
-          '          （减缓段至 33.912 €；之后由上限 5,5 % × ESt 主导）',
+          '   否则：Soli = min( 5,5 % × 基数 ; 11,9 % × (基数 − 起征点) )',
+          '          （减缓段至约 37.839 € 单人 / 75.678 € 共同；之后由上限主导）',
           '',
-          '计算基础是 Günstigerprüfung 得出的 festzus. ESt（3 不含 Soli）。',
-          '教会税不计：基础数据中两人均不缴教会税。'
+          '根据 § 51a EStG，计算基础是考虑 Kinderfreibetrag 后的 ESt，不包含 Kindergeld 加回。',
+          '教会税在税款合计中使用同一 §51a 基数单独加上。'
         ],
-        detailBelowFreigrenze: ['festzus. ESt = {est}', '→ ≤ 起征点 {freigrenze}', '→ Soli = 0 €'],
+        detailBelowFreigrenze: ['§51a 基数 = {est}', '→ ≤ 起征点 {freigrenze}', '→ Soli = 0 €'],
         detailAboveFreigrenze: [
-          'festzus. ESt = {est}',
+          '§51a 基数 = {est}',
           '',
           '上限 (5,5 %)        = {soliRate} % × {estPlain} = {cap}',
           '减缓段             = {milderungRate} % × ({estPlain} − {freigrenzePlain})',
@@ -550,6 +641,7 @@ export default {
           '→ Soli = min({capPlain}, {milderungPlain}) = {soli}',
           '   ({chosen})'
         ],
+        jointAllocation: '共同报税：上方显示共同 Soli 基数；此格显示分摊到本人的金额 {allocated}。',
         capWins: '上限 5,5 % 起作用',
         milderungActive: '减缓段生效'
       },
@@ -594,6 +686,7 @@ export default {
           '   2.2 含 KFB 的 ESt        = {est22}',
           '   + 2.4 Kindergeld 加回    = {childBenefitShare}',
           '   = festzus. ESt          = {assessedIncomeTax}',
+          '   §51a 基数 Soli/教会税     = {zuschlagsteuerBaseIncomeTax}',
           '   + 2.6 Soli               = {soli}',
           '   + 教会税                 = {kirchensteuer}',
           '   = 税款合计               = {total}',
@@ -613,6 +706,7 @@ export default {
           '方案 A（已选）—— 仅 Kindergeld:',
           '   2.1 不含 KFB 的 ESt       = {est21}',
           '   = festzus. ESt           = {assessedIncomeTax}',
+          '   §51a 基数 Soli/教会税      = {zuschlagsteuerBaseIncomeTax}',
           '   + 2.6 Soli                = {soli}',
           '   + 教会税                  = {kirchensteuer}',
           '   = 税款合计                = {total}',

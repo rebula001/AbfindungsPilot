@@ -10,70 +10,7 @@
 import { ref, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
-
-interface ScenarioValues {
-  user: number;
-  spouse: number;
-}
-
-type Cell = 'user' | 'spouse';
-type Scenario = 'liegen' | 'neue';
-
-/** 单元格级别的 Popover 内容（公式 + 代入数字） */
-export interface PopoverDetail {
-  /** 该单元格的具体推导文本（带换行；可包含 → 号、数字代入） */
-  computation: string;
-}
-
-export interface StepPopover {
-  /** 通用公式（不含具体数字），多行用 \n */
-  formula: string;
-  /** 单元格级别的具体代入：4 个组合（左/右场景 × 用户/配偶） */
-  details: Record<Scenario, Record<Cell, PopoverDetail>>;
-}
-
-/** 结果单元格下方的动态徽章（用于 Günstigerprüfung 等判定标注） */
-export interface ResultNote {
-  text: string;
-  /** badge 颜色风格 */
-  variant: 'info' | 'success' | 'warning';
-}
-
-/** 单元格级别的轻量元数据：金额后的内联后缀（如 → 25,3 %）以及金额下方的副行（如 „Netto: 194.655 €“）。 */
-export interface CellMeta {
-  suffix?: string;
-  sub?: string;
-}
-
-interface DisplayStep {
-  label: string;
-  titleKey: string;
-  legalBasisKey: string;
-  liegen: ScenarioValues;
-  neue: ScenarioValues;
-  isDeduction: boolean;
-  highlight?: boolean;
-  /** 可选 Popover：点击该步骤的任意值单元格时弹出 */
-  popover?: StepPopover;
-  /** 对 result 行：每个单元格下方的判定徽章 */
-  notes?: Record<Scenario, Record<Cell, ResultNote | undefined>>;
-  /** 可选：每个单元格的轻量元数据（金額后缀 + 金額下方副行），当前仅 alternatives 区段演示。 */
-  cellMeta?: Record<Scenario, Record<Cell, CellMeta | undefined>>;
-}
-
-interface StepGroup {
-  titleKey: string;
-  legalBasisKey: string;
-  income?: DisplayStep[];
-  deductions: DisplayStep[];
-  /**
-   * 备注/比较区段：步骤本身**不参与**“组结果”的加减运算，只为后续判定
-   * 提供参考值（如 Günstigerprüfung）。
-   * 视觉上与 income/deductions 区分开（amber 配色 + 菱形 marker），并显式提示用户这些值不直接累加。
-   */
-  alternatives?: DisplayStep[];
-  result: DisplayStep;
-}
+import type { Cell, DisplayStep, ResultNote, Scenario, StepGroup } from '../types/calculationSteps';
 
 defineProps<{
   group: StepGroup;

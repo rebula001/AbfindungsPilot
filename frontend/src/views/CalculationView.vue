@@ -13,11 +13,14 @@ import CalculationGroup from '../components/CalculationGroup.vue';
 import { useCalculation } from '../composables/useCalculation';
 import type { PersonYearResult, PersonTaxResult, YearComputation } from '../calculation/types';
 import { grundtarifESt, estWithProgressionsvorbehalt } from '../calculation/engine';
+import type { Cell, Scenario, ScenarioValues, StepGroup, StepPopover } from '../types/calculationSteps';
 import {
   KFB_HALF_PER_CHILD_2026,
   KINDERGELD_PER_MONTH_PER_CHILD_2026,
+  BBG_KV_PV_MONTHLY_2026,
   VORSORGE_KV_KRANKENGELD_ABSCHLAG,
   SOLI_FREIGRENZE_SINGLE_2026,
+  SOLI_FREIGRENZE_JOINT_2026,
   SOLI_RATE,
   SOLI_MILDERUNGSZONE_RATE
 } from '../calculation/constants';
@@ -87,40 +90,7 @@ const severanceIndex = computed<number>({
   }
 });
 
-interface ScenarioValues {
-  user: number;
-  spouse: number;
-}
-
-interface DisplayStep {
-  label: string;
-  titleKey: string;
-  legalBasisKey: string;
-  liegen: ScenarioValues;
-  neue: ScenarioValues;
-  isDeduction: boolean;
-  highlight?: boolean;
-  popover?: {
-    formula: string;
-    details: Record<'liegen' | 'neue', Record<'user' | 'spouse', { computation: string }>>;
-  };
-  notes?: Record<'liegen' | 'neue', Record<'user' | 'spouse', { text: string; variant?: 'info' | 'success' | 'warning' } | undefined>>;
-  cellMeta?: Record<'liegen' | 'neue', Record<'user' | 'spouse', { suffix?: string; sub?: string } | undefined>>;
-}
-
-interface StepGroup {
-  titleKey: string;
-  legalBasisKey: string;
-  income?: DisplayStep[];
-  deductions?: DisplayStep[];
-  alternatives?: DisplayStep[];
-  result: DisplayStep;
-}
-
-function buildCellDetails<T extends { scenario: 'liegen' | 'neue'; cell: 'user' | 'spouse' }>(
-  cells: T[],
-  builder: (c: T) => string
-): Record<'liegen' | 'neue', Record<'user' | 'spouse', { computation: string }>> {
+function buildCellDetails<T extends { scenario: Scenario; cell: Cell }>(cells: T[], builder: (c: T) => string): StepPopover['details'] {
   const out = {
     liegen: { user: { computation: '' }, spouse: { computation: '' } },
     neue: { user: { computation: '' }, spouse: { computation: '' } }
@@ -183,6 +153,13 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
       },
       {
         label: '0.4',
+        titleKey: 'calculation.steps.singleParentRelief.title',
+        legalBasisKey: 'calculation.steps.singleParentRelief.legalBasis',
+        ...pull((r) => r.singleParentRelief),
+        isDeduction: true
+      },
+      {
+        label: '0.5',
         titleKey: 'calculation.steps.vorsorge.title',
         legalBasisKey: 'calculation.steps.vorsorge.legalBasis',
         ...pull((r) => r.pensionExpenseDeduction),
@@ -190,11 +167,15 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
         popover: {
           formula: tList('calculation.popover.vorsorge.formula'),
           details: buildPersonDetails((p) => {
-            const kvAnteil = p.sv.kv * kvAbzugRate;
+            const kvEmploymentDeduct = p.sv.kvEmployment * kvAbzugRate;
+            const kvSelfPaidDeduct = p.sv.kvSelfPaidAfterAlg;
+            const kvAnteil = kvEmploymentDeduct + kvSelfPaidDeduct;
             const total = p.sv.rv + kvAnteil + p.sv.pv;
             return tList('calculation.popover.vorsorge.detail', {
               rv: fmtE(p.sv.rv),
-              kv: fmtE(p.sv.kv),
+              kvEmployment: fmtE(p.sv.kvEmployment),
+              kvEmploymentDeduct: fmtE(kvEmploymentDeduct),
+              kvSelfPaid: fmtE(p.sv.kvSelfPaidAfterAlg),
               kvDeduct: fmtE(kvAnteil),
               pv: fmtE(p.sv.pv),
               total: fmtE(total)
@@ -203,10 +184,10 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
         }
       },
       {
-        label: '0.5',
+        label: '0.6',
         titleKey: 'calculation.steps.spenden.title',
         legalBasisKey: 'calculation.steps.spenden.legalBasis',
-        ...pull((r) => r.donationDeduction),
+        ...pull((r) => r.generalSpecialExpensesDeduction),
         isDeduction: true
       }
     ],
@@ -214,7 +195,7 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
       label: '1',
       titleKey: 'calculation.steps.zvE.title',
       legalBasisKey: 'calculation.steps.zvE.legalBasis',
-      ...pull((r) => r.zvEWithoutKFB),
+      ...pull((r) => r.zvEwithoutKFB),
       isDeduction: false,
       highlight: true
     }
@@ -227,6 +208,66 @@ function buildSozialabgabenGroup(yc: YearComputation): StepGroup {
     neue: { user: sel(yc.newJob.user), spouse: sel(yc.newJob.spouse) }
   });
 
+  const cells: Array<{ scenario: 'liegen' | 'neue'; cell: 'user' | 'spouse'; person: PersonYearResult }> = [
+    { scenario: 'liegen', cell: 'user', person: yc.stayUnemployed.user },
+    { scenario: 'liegen', cell: 'spouse', person: yc.stayUnemployed.spouse },
+    { scenario: 'neue', cell: 'user', person: yc.newJob.user },
+    { scenario: 'neue', cell: 'spouse', person: yc.newJob.spouse }
+  ];
+  const buildDetails = (builder: (c: (typeof cells)[number]) => string) => buildCellDetails(cells, builder);
+  const fmtE = (n: number) => euroFmt.format(Math.round(n));
+  const fmtPct = (n: number) => `${n.toFixed(2).replace('.', ',')} %`;
+
+  function describeKv(p: PersonYearResult): string {
+    const months = p.sv.selfPaidHealthInsuranceMonths;
+    const base = p.sv.selfPaidHealthInsuranceMonthlyBase;
+    const gross = p.sv.selfPaidHealthInsuranceMonthlyGross;
+    if (months > 0 && base > 0) {
+      const rate = (p.sv.kvSelfPaidAfterAlg / (base * months)) * 100;
+      const monthlySelfPay = p.sv.kvSelfPaidAfterAlg / months;
+      return tList('calculation.popover.kv.detailWithSelfPay', {
+        employment: fmtE(p.sv.kvEmployment),
+        gross: fmtE(gross),
+        bbg: fmtE(BBG_KV_PV_MONTHLY_2026),
+        base: fmtE(base),
+        months,
+        rate: fmtPct(rate),
+        monthlySelfPay: fmtE(monthlySelfPay),
+        selfPay: fmtE(p.sv.kvSelfPaidAfterAlg),
+        total: fmtE(p.sv.kv)
+      });
+    }
+    return tList('calculation.popover.kv.detailWithoutSelfPay', {
+      employment: fmtE(p.sv.kvEmployment),
+      total: fmtE(p.sv.kv)
+    });
+  }
+
+  function describePv(p: PersonYearResult): string {
+    const months = p.sv.selfPaidHealthInsuranceMonths;
+    const base = p.sv.selfPaidHealthInsuranceMonthlyBase;
+    const gross = p.sv.selfPaidHealthInsuranceMonthlyGross;
+    if (months > 0 && base > 0) {
+      const rate = (p.sv.pvSelfPaidAfterAlg / (base * months)) * 100;
+      const monthlySelfPay = p.sv.pvSelfPaidAfterAlg / months;
+      return tList('calculation.popover.pv.detailWithSelfPay', {
+        employment: fmtE(p.sv.pvEmployment),
+        gross: fmtE(gross),
+        bbg: fmtE(BBG_KV_PV_MONTHLY_2026),
+        base: fmtE(base),
+        months,
+        rate: fmtPct(rate),
+        monthlySelfPay: fmtE(monthlySelfPay),
+        selfPay: fmtE(p.sv.pvSelfPaidAfterAlg),
+        total: fmtE(p.sv.pv)
+      });
+    }
+    return tList('calculation.popover.pv.detailWithoutSelfPay', {
+      employment: fmtE(p.sv.pvEmployment),
+      total: fmtE(p.sv.pv)
+    });
+  }
+
   return {
     titleKey: 'calculation.groups.sozialabgaben.title',
     legalBasisKey: 'calculation.groups.sozialabgaben.legalBasis',
@@ -236,14 +277,22 @@ function buildSozialabgabenGroup(yc: YearComputation): StepGroup {
         titleKey: 'calculation.steps.kv.title',
         legalBasisKey: 'calculation.steps.kv.legalBasis',
         ...pull((r) => r.sv.kv),
-        isDeduction: true
+        isDeduction: true,
+        popover: {
+          formula: tList('calculation.popover.kv.formula'),
+          details: buildDetails((c) => describeKv(c.person))
+        }
       },
       {
         label: '1.2',
         titleKey: 'calculation.steps.pv.title',
         legalBasisKey: 'calculation.steps.pv.legalBasis',
         ...pull((r) => r.sv.pv),
-        isDeduction: true
+        isDeduction: true,
+        popover: {
+          formula: tList('calculation.popover.pv.formula'),
+          details: buildDetails((c) => describePv(c.person))
+        }
       },
       {
         label: '1.3',
@@ -305,16 +354,20 @@ function buildEstGroup(yc: YearComputation): StepGroup {
   const fmtE = (n: number) => euroFmt.format(Math.round(n));
   const fmtENoSym = (n: number) => Math.round(n).toLocaleString('de-DE');
 
-  function showFuenftelProgrV(zvEOrd: number, abfindung: number, alg: number): string {
-    const estSockel = estWithProgressionsvorbehalt(zvEOrd, alg, false);
+  function showFuenftelProgrV(zvEOrd: number, abfindung: number, alg: number, algForProgression: number, algPauschbetragDeduction: number): string {
+    const estSockel = estWithProgressionsvorbehalt(zvEOrd, algForProgression, false);
     const parts: string[] = [];
     parts.push(tList('calculation.popover.fuenftel.head', { zvEOrd: fmtE(zvEOrd), abfindung: fmtE(abfindung), alg: fmtE(alg) }));
     if (alg > 0) {
-      const estTotal = grundtarifESt(zvEOrd + alg);
-      const satz = zvEOrd + alg > 0 ? estTotal / (zvEOrd + alg) : 0;
+      const progressionBase = zvEOrd + algForProgression;
+      const estTotal = grundtarifESt(progressionBase);
+      const satz = progressionBase > 0 ? estTotal / progressionBase : 0;
       parts.push(
         tList('calculation.popover.fuenftel.progrVWithAlg', {
-          sumPlain: fmtENoSym(zvEOrd + alg),
+          apbDeduction: fmtE(algPauschbetragDeduction),
+          algForProgression: fmtE(algForProgression),
+          algForProgressionPlain: fmtENoSym(algForProgression),
+          sumPlain: fmtENoSym(progressionBase),
           ratePct: (satz * 100).toFixed(2),
           zvEOrdPlain: fmtENoSym(zvEOrd),
           sockel: fmtE(estSockel)
@@ -329,8 +382,23 @@ function buildEstGroup(yc: YearComputation): StepGroup {
       );
     }
     if (abfindung > 0) {
+      const totalZvE = zvEOrd + abfindung;
+      if (zvEOrd < 0 && totalZvE > 0) {
+        const satz3Base = totalZvE / 5;
+        const estSatz3Base = estWithProgressionsvorbehalt(satz3Base, algForProgression, false);
+        parts.push(
+          tList('calculation.popover.fuenftel.fuenftelNegativeOrdinary', {
+            totalZvE: fmtE(totalZvE),
+            satz3Base: fmtE(satz3Base),
+            estSatz3Base: fmtE(estSatz3Base),
+            estSatz3BasePlain: fmtENoSym(estSatz3Base),
+            total: fmtE(5 * estSatz3Base)
+          })
+        );
+        return parts.join('\n');
+      }
       const fuenftelBetrag = abfindung / 5;
-      const estMitFuenftel = estWithProgressionsvorbehalt(zvEOrd + fuenftelBetrag, alg, false);
+      const estMitFuenftel = estWithProgressionsvorbehalt(zvEOrd + fuenftelBetrag, algForProgression, false);
       const zusatz = Math.max(0, 5 * (estMitFuenftel - estSockel));
       parts.push(
         tList('calculation.popover.fuenftel.fuenftelWithAbf', {
@@ -351,10 +419,20 @@ function buildEstGroup(yc: YearComputation): StepGroup {
   const childrenForDisplay = Math.round(yc.stayUnemployed.userTax.kfbHalf / KFB_HALF_PER_CHILD_2026);
 
   function abfindungTaxBreakdown(tax: PersonTaxResult): { sockel: number; mitFuenftel: number; zusatz: number; rate: number } {
-    const zvEOrd = tax.zvEWithoutKFB;
-    const sockel = estWithProgressionsvorbehalt(zvEOrd, tax.unemploymentBenefit, false);
+    const zvEOrd = tax.zvEwithoutKFB;
+    const sockel = estWithProgressionsvorbehalt(zvEOrd, tax.unemploymentBenefitForProgression, false);
     if (tax.severance <= 0) return { sockel, mitFuenftel: sockel, zusatz: 0, rate: 0 };
-    const mitFuenftel = estWithProgressionsvorbehalt(zvEOrd + tax.severance / 5, tax.unemploymentBenefit, false);
+    const totalZvE = zvEOrd + tax.severance;
+    if (zvEOrd < 0 && totalZvE > 0) {
+      const total = 5 * estWithProgressionsvorbehalt(totalZvE / 5, tax.unemploymentBenefitForProgression, false);
+      return {
+        sockel,
+        mitFuenftel: total,
+        zusatz: Math.max(0, total - sockel),
+        rate: tax.severance > 0 ? Math.max(0, total - sockel) / tax.severance : 0
+      };
+    }
+    const mitFuenftel = estWithProgressionsvorbehalt(zvEOrd + tax.severance / 5, tax.unemploymentBenefitForProgression, false);
     const zusatz = Math.max(0, 5 * (mitFuenftel - sockel));
     const rate = tax.severance > 0 ? zusatz / tax.severance : 0;
     return { sockel, mitFuenftel, zusatz, rate };
@@ -387,30 +465,42 @@ function buildEstGroup(yc: YearComputation): StepGroup {
     };
   };
 
-  function describeSoli(tax: PersonTaxResult): string {
-    const est = Math.floor(Math.max(0, tax.assessedIncomeTax));
-    if (est <= SOLI_FREIGRENZE_SINGLE_2026) {
-      return tList('calculation.popover.soli.detailBelowFreigrenze', {
-        est: fmtE(est),
-        freigrenze: fmtE(SOLI_FREIGRENZE_SINGLE_2026)
-      });
+  function describeSoli(c: (typeof cells)[number]): string {
+    const jointTax = yc.mode === 'joint' ? (c.scenario === 'liegen' ? yc.stayUnemployed.jointTax : yc.newJob.jointTax) : undefined;
+    const freigrenze = jointTax ? SOLI_FREIGRENZE_JOINT_2026 : SOLI_FREIGRENZE_SINGLE_2026;
+    const est = Math.floor(Math.max(0, jointTax ? jointTax.zuschlagsteuerBaseIncomeTaxJoint : c.tax.zuschlagsteuerBaseIncomeTax));
+    const jointAllocation = jointTax
+      ? '\n' +
+        tList('calculation.popover.soli.jointAllocation', {
+          allocated: fmtE(c.tax.soli)
+        })
+      : '';
+    if (est <= freigrenze) {
+      return (
+        tList('calculation.popover.soli.detailBelowFreigrenze', {
+          est: fmtE(est),
+          freigrenze: fmtE(freigrenze)
+        }) + jointAllocation
+      );
     }
     const cap = SOLI_RATE * est;
-    const milderung = SOLI_MILDERUNGSZONE_RATE * (est - SOLI_FREIGRENZE_SINGLE_2026);
+    const milderung = SOLI_MILDERUNGSZONE_RATE * (est - freigrenze);
     const capWins = cap <= milderung;
-    return tList('calculation.popover.soli.detailAboveFreigrenze', {
-      est: fmtE(est),
-      soliRate: SOLI_RATE * 100,
-      milderungRate: SOLI_MILDERUNGSZONE_RATE * 100,
-      estPlain: fmtENoSym(est),
-      freigrenzePlain: fmtENoSym(SOLI_FREIGRENZE_SINGLE_2026),
-      cap: fmtE(cap),
-      milderung: fmtE(milderung),
-      capPlain: fmtENoSym(cap),
-      milderungPlain: fmtENoSym(milderung),
-      soli: fmtE(Math.floor(Math.min(cap, milderung))),
-      chosen: capWins ? t('calculation.popover.soli.capWins') : t('calculation.popover.soli.milderungActive')
-    });
+    return (
+      tList('calculation.popover.soli.detailAboveFreigrenze', {
+        est: fmtE(est),
+        soliRate: SOLI_RATE * 100,
+        milderungRate: SOLI_MILDERUNGSZONE_RATE * 100,
+        estPlain: fmtENoSym(est),
+        freigrenzePlain: fmtENoSym(freigrenze),
+        cap: fmtE(cap),
+        milderung: fmtE(milderung),
+        capPlain: fmtENoSym(cap),
+        milderungPlain: fmtENoSym(milderung),
+        soli: fmtE(Math.floor(Math.min(cap, milderung))),
+        chosen: capWins ? t('calculation.popover.soli.capWins') : t('calculation.popover.soli.milderungActive')
+      }) + jointAllocation
+    );
   }
 
   return {
@@ -425,7 +515,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
         isDeduction: true,
         popover: {
           formula: tList('calculation.popover.soli.formula'),
-          details: buildDetails((c) => describeSoli(c.tax))
+          details: buildDetails((c) => describeSoli(c))
         }
       }
     ],
@@ -434,18 +524,26 @@ function buildEstGroup(yc: YearComputation): StepGroup {
         label: '2.1',
         titleKey: 'calculation.steps.tariffIncomeTaxWithoutKFB.title',
         legalBasisKey: 'calculation.steps.tariffIncomeTaxWithoutKFB.legalBasis',
-        ...pullTax((tx) => tx.tariffIncomeTaxWithoutKFB),
+        ...pullTax((tx) => tx.tarifIncomeTaxWithoutKFB),
         isDeduction: true,
         popover: {
           formula: tList('calculation.popover.tariffIncomeTaxWithoutKFB.formula'),
-          details: buildDetails((c) => showFuenftelProgrV(c.tax.zvEWithoutKFB, c.tax.severance, c.tax.unemploymentBenefit))
+          details: buildDetails((c) =>
+            showFuenftelProgrV(
+              c.tax.zvEwithoutKFB,
+              c.tax.severance,
+              c.tax.unemploymentBenefit,
+              c.tax.unemploymentBenefitForProgression,
+              c.tax.unemploymentBenefitPauschbetragDeduction
+            )
+          )
         }
       },
       {
         label: '2.2',
         titleKey: 'calculation.steps.tariffIncomeTaxWithKFB.title',
         legalBasisKey: 'calculation.steps.tariffIncomeTaxWithKFB.legalBasis',
-        ...pullTax((tx) => tx.tariffIncomeTaxWithKFB),
+        ...pullTax((tx) => tx.tarifIncomeTaxWithKFB),
         isDeduction: true,
         popover: {
           formula: tList('calculation.popover.tariffIncomeTaxWithKFB.formula', {
@@ -454,12 +552,18 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           }),
           details: buildDetails(
             (c) =>
-              tList('calculation.popover.tariffIncomeTaxWithKFB.detail1Prefix', {
+              tList('calculation.popover.tariffIncomeTaxWithKFB.detailPrefix', {
                 kfbHalf: fmtE(c.tax.kfbHalf),
-                zvEMinusKfb: fmtE(c.tax.zvEWithKFB)
+                zvEminusKfb: fmtE(c.tax.zvEwithKFB)
               }) +
               '\n' +
-              showFuenftelProgrV(c.tax.zvEWithKFB, c.tax.severance, c.tax.unemploymentBenefit)
+              showFuenftelProgrV(
+                c.tax.zvEwithKFB,
+                c.tax.severance,
+                c.tax.unemploymentBenefit,
+                c.tax.unemploymentBenefitForProgression,
+                c.tax.unemploymentBenefitPauschbetragDeduction
+              )
           )
         }
       },
@@ -473,8 +577,8 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           formula: tList('calculation.popover.kfbSavings.formula'),
           details: buildDetails((c) =>
             tList('calculation.popover.kfbSavings.detail', {
-              est21: fmtE(c.tax.tariffIncomeTaxWithoutKFB),
-              est22: fmtE(c.tax.tariffIncomeTaxWithKFB),
+              est21: fmtE(c.tax.tarifIncomeTaxWithoutKFB),
+              est22: fmtE(c.tax.tarifIncomeTaxWithKFB),
               savings: fmtE(c.tax.kfbSavings)
             })
           )
@@ -542,21 +646,23 @@ function buildEstGroup(yc: YearComputation): StepGroup {
               kfbSavings: fmtE(tax.kfbSavings),
               childBenefitShare: fmtE(tax.childBenefitShare),
               kfbDiff: fmtE(tax.kfbSavings - tax.childBenefitShare),
-              est22: fmtE(tax.tariffIncomeTaxWithKFB),
+              est22: fmtE(tax.tarifIncomeTaxWithKFB),
               assessedIncomeTax: fmtE(tax.assessedIncomeTax),
+              zuschlagsteuerBaseIncomeTax: fmtE(tax.zuschlagsteuerBaseIncomeTax),
               soli: fmtE(tax.soli),
               kirchensteuer: fmtE(tax.kirchensteuer),
               total: fmtE(tax.assessedIncomeTax + tax.soli + tax.kirchensteuer),
-              est21: fmtE(tax.tariffIncomeTaxWithoutKFB),
-              savings: fmtE(tax.tariffIncomeTaxWithoutKFB - tax.assessedIncomeTax)
+              est21: fmtE(tax.tarifIncomeTaxWithoutKFB),
+              savings: fmtE(tax.tarifIncomeTaxWithoutKFB - tax.assessedIncomeTax)
             });
           }
           return tList('calculation.popover.steuerGesamt.detailKindergeldWins', {
             kfbSavings: fmtE(tax.kfbSavings),
             childBenefitShare: fmtE(tax.childBenefitShare),
             kgDiff: fmtE(tax.childBenefitShare - tax.kfbSavings),
-            est21: fmtE(tax.tariffIncomeTaxWithoutKFB),
+            est21: fmtE(tax.tarifIncomeTaxWithoutKFB),
             assessedIncomeTax: fmtE(tax.assessedIncomeTax),
+            zuschlagsteuerBaseIncomeTax: fmtE(tax.zuschlagsteuerBaseIncomeTax),
             soli: fmtE(tax.soli),
             kirchensteuer: fmtE(tax.kirchensteuer),
             total: fmtE(tax.assessedIncomeTax + tax.soli + tax.kirchensteuer)
@@ -568,7 +674,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           user: {
             text: yc.stayUnemployed.userTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
-                  est22: fmtE(yc.stayUnemployed.userTax.tariffIncomeTaxWithKFB),
+                  est22: fmtE(yc.stayUnemployed.userTax.tarifIncomeTaxWithKFB),
                   kg: fmtE(yc.stayUnemployed.userTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
@@ -579,7 +685,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           spouse: {
             text: yc.stayUnemployed.spouseTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
-                  est22: fmtE(yc.stayUnemployed.spouseTax.tariffIncomeTaxWithKFB),
+                  est22: fmtE(yc.stayUnemployed.spouseTax.tarifIncomeTaxWithKFB),
                   kg: fmtE(yc.stayUnemployed.spouseTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
@@ -592,7 +698,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           user: {
             text: yc.newJob.userTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
-                  est22: fmtE(yc.newJob.userTax.tariffIncomeTaxWithKFB),
+                  est22: fmtE(yc.newJob.userTax.tarifIncomeTaxWithKFB),
                   kg: fmtE(yc.newJob.userTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
@@ -603,7 +709,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           spouse: {
             text: yc.newJob.spouseTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
-                  est22: fmtE(yc.newJob.spouseTax.tariffIncomeTaxWithKFB),
+                  est22: fmtE(yc.newJob.spouseTax.tarifIncomeTaxWithKFB),
                   kg: fmtE(yc.newJob.spouseTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
@@ -873,15 +979,26 @@ const perMonthInfo = computed<{ perMonth: number; type: PerMonthVerdictType } | 
 const summaryVerdict = computed<{ key: string; amount: string; tone: 'success' | 'warning' | 'info' | PerMonthVerdictType }>(() => {
   const d = summary.value.diffNetto;
   const abs = Math.abs(d);
-  const suffix = isSingleMode.value ? 'Single' : '';
   if (abs <= SUMMARY_EVEN_THRESHOLD) {
-    return { key: 'calculation.summary.verdictEven' + suffix, amount: euroFmt.format(Math.round(abs)), tone: 'info' };
+    return {
+      key: isSingleMode.value ? 'calculation.summary.verdictEvenSingle' : 'calculation.summary.verdictEven',
+      amount: euroFmt.format(Math.round(abs)),
+      tone: 'info'
+    };
   }
   if (d > 0) {
     const tone = perMonthInfo.value?.type ?? 'high';
-    return { key: 'calculation.summary.verdictNeue' + suffix, amount: euroFmt.format(Math.round(abs)), tone };
+    return {
+      key: isSingleMode.value ? 'calculation.summary.verdictNeueSingle' : 'calculation.summary.verdictNeue',
+      amount: euroFmt.format(Math.round(abs)),
+      tone
+    };
   }
-  return { key: 'calculation.summary.verdictLiegen' + suffix, amount: euroFmt.format(Math.round(abs)), tone: 'warning' };
+  return {
+    key: isSingleMode.value ? 'calculation.summary.verdictLiegenSingle' : 'calculation.summary.verdictLiegen',
+    amount: euroFmt.format(Math.round(abs)),
+    tone: 'warning'
+  };
 });
 
 function summaryBoxClass(tone: 'success' | 'warning' | 'info' | PerMonthVerdictType): string {

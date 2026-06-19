@@ -54,6 +54,7 @@ const privateCareInsuranceAnnual = ref(0);
 // Familie 默认有 1 个 25 岁以下子女、Kinderfreibetrag=1（Single 模式下用户可手动改）
 const hasChildren = ref(true);
 const childrenUnder25 = ref(1);
+const isAlleinerziehend = ref(false);
 const childAllowance = ref(1);
 const childBenefitMonthlyPerChild = ref(259);
 const age = ref(47);
@@ -72,16 +73,32 @@ watch(withSpouse, (next, prev) => {
   if (next) {
     taxClass.value = '4';
     spouseTaxClass.value = '4';
+    spousePaysChurchTax.value = paysChurchTax.value;
     hasChildren.value = true;
     childrenUnder25.value = 1;
+    isAlleinerziehend.value = false;
     childAllowance.value = 1;
   } else {
     taxClass.value = '1';
     hasChildren.value = false;
     childrenUnder25.value = 0;
+    isAlleinerziehend.value = false;
     childAllowance.value = 0;
   }
 });
+watch([withSpouse, hasChildren, childrenUnder25], () => {
+  if (!canUseSingleParentRelief()) {
+    isAlleinerziehend.value = false;
+  }
+});
+watch(paysChurchTax, (next) => {
+  if (withSpouse.value) {
+    spousePaysChurchTax.value = next;
+  }
+});
+function canUseSingleParentRelief(): boolean {
+  return !withSpouse.value && hasChildren.value && childrenUnder25.value > 0;
+}
 // Steuerklassen-Kombination III/V (gilt nur im Familie-Modus):
 //   - Ein Ehegatte wählt III → Partner muss V haben.
 //   - Ein Ehegatte wählt V  → Partner muss III haben.
@@ -179,8 +196,32 @@ const possibleSeverancePaymentDateNextYear = computed<Date | null>(() => {
   if (!d) return null;
   return new Date(d.getFullYear() + 1, 0, 15);
 });
+
+function dateToIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseStoredDate(raw: unknown): Date | null {
+  if (typeof raw !== 'string') return null;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]) - 1;
+    const day = Number(dateOnly[3]);
+    const date = new Date(year, month, day);
+    return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day ? date : null;
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 const oldEmployerIncomeCurrentYear = ref(0);
+const lastMonthlyGrossBeforeUnemployment = ref(0);
 const unemploymentBenefitMonthly = ref(0);
+const alvInsuranceMonthsLast5Years = ref(60);
 const hasBenefitReductionPeriod = ref(false);
 const benefitReductionMonths = ref(1);
 const hasBenefitSuspensionPeriod = ref(false);
@@ -211,6 +252,7 @@ const DEFAULTS = {
   privateCareInsuranceAnnual: 0,
   hasChildren: true,
   childrenUnder25: 1,
+  isAlleinerziehend: false,
   childAllowance: 1,
   childBenefitMonthlyPerChild: 259,
   age: 47,
@@ -236,7 +278,9 @@ const DEFAULTS = {
   severanceGross: 0,
   unemploymentDate: null as Date | null,
   oldEmployerIncomeCurrentYear: 0,
+  lastMonthlyGrossBeforeUnemployment: 0,
   unemploymentBenefitMonthly: 0,
+  alvInsuranceMonthsLast5Years: 60,
   hasBenefitReductionPeriod: false,
   benefitReductionMonths: 1,
   hasBenefitSuspensionPeriod: false,
@@ -261,6 +305,7 @@ function resetToDefaults() {
   privateCareInsuranceAnnual.value = DEFAULTS.privateCareInsuranceAnnual;
   hasChildren.value = DEFAULTS.hasChildren;
   childrenUnder25.value = DEFAULTS.childrenUnder25;
+  isAlleinerziehend.value = DEFAULTS.isAlleinerziehend;
   childAllowance.value = DEFAULTS.childAllowance;
   childBenefitMonthlyPerChild.value = DEFAULTS.childBenefitMonthlyPerChild;
   age.value = DEFAULTS.age;
@@ -286,7 +331,9 @@ function resetToDefaults() {
   severanceGross.value = DEFAULTS.severanceGross;
   unemploymentDate.value = DEFAULTS.unemploymentDate ? new Date(DEFAULTS.unemploymentDate) : null;
   oldEmployerIncomeCurrentYear.value = DEFAULTS.oldEmployerIncomeCurrentYear;
+  lastMonthlyGrossBeforeUnemployment.value = DEFAULTS.lastMonthlyGrossBeforeUnemployment;
   unemploymentBenefitMonthly.value = DEFAULTS.unemploymentBenefitMonthly;
+  alvInsuranceMonthsLast5Years.value = DEFAULTS.alvInsuranceMonthsLast5Years;
   hasBenefitReductionPeriod.value = DEFAULTS.hasBenefitReductionPeriod;
   benefitReductionMonths.value = DEFAULTS.benefitReductionMonths;
   hasBenefitSuspensionPeriod.value = DEFAULTS.hasBenefitSuspensionPeriod;
@@ -318,6 +365,7 @@ function collectInputState(): UserInputSnapshot {
     privateCareInsuranceAnnual: privateCareInsuranceAnnual.value,
     hasChildren: hasChildren.value,
     childrenUnder25: childrenUnder25.value,
+    isAlleinerziehend: canUseSingleParentRelief() && isAlleinerziehend.value,
     childAllowance: childAllowance.value,
     childBenefitMonthlyPerChild: childBenefitMonthlyPerChild.value,
     age: age.value,
@@ -326,7 +374,7 @@ function collectInputState(): UserInputSnapshot {
     withSpouse: withSpouse.value,
     spouseTaxClass: spouseTaxClass.value,
     spouseTaxClassFactor: spouseTaxClassFactor.value,
-    spousePaysChurchTax: spousePaysChurchTax.value,
+    spousePaysChurchTax: withSpouse.value ? paysChurchTax.value : spousePaysChurchTax.value,
     spouseHealthInsurance: spouseHealthInsurance.value,
     spouseHealthInsuranceAdditionalRate: spouseHealthInsuranceAdditionalRate.value,
     spousePrivateHealthInsuranceAnnual: spousePrivateHealthInsuranceAnnual.value,
@@ -338,12 +386,14 @@ function collectInputState(): UserInputSnapshot {
     expectedMonthlySalaryMin: expectedMonthlySalaryMin.value,
     expectedMonthlySalaryMax: expectedMonthlySalaryMax.value,
     expectedMonthlySalaryStep: expectedMonthlySalaryStep.value,
-    newJobStartDate: newJobStartDate.value ? newJobStartDate.value.toISOString() : null,
+    newJobStartDate: newJobStartDate.value ? dateToIsoDate(newJobStartDate.value) : null,
     newJobMonthlySalary: newJobMonthlySalary.value,
     severanceGross: severanceGross.value,
-    unemploymentDate: unemploymentDate.value ? unemploymentDate.value.toISOString() : null,
+    unemploymentDate: unemploymentDate.value ? dateToIsoDate(unemploymentDate.value) : null,
     oldEmployerIncomeCurrentYear: oldEmployerIncomeCurrentYear.value,
+    lastMonthlyGrossBeforeUnemployment: lastMonthlyGrossBeforeUnemployment.value,
     unemploymentBenefitMonthly: unemploymentBenefitMonthly.value,
+    alvInsuranceMonthsLast5Years: alvInsuranceMonthsLast5Years.value,
     hasBenefitReductionPeriod: hasBenefitReductionPeriod.value,
     benefitReductionMonths: benefitReductionMonths.value,
     hasBenefitSuspensionPeriod: hasBenefitSuspensionPeriod.value,
@@ -364,8 +414,7 @@ function applyInputState(d: Record<string, unknown>) {
   };
   const setDateIfDefined = (key: string, setter: (v: Date | null) => void) => {
     if (d[key] === undefined) return;
-    const raw = d[key];
-    setter(typeof raw === 'string' ? new Date(raw) : null);
+    setter(parseStoredDate(d[key]));
   };
   setIfDefined<string>('taxClass', (v) => (taxClass.value = v));
   setIfDefined<number>('taxClassFactor', (v) => (taxClassFactor.value = v));
@@ -377,6 +426,7 @@ function applyInputState(d: Record<string, unknown>) {
   setIfDefined<number>('privateCareInsuranceAnnual', (v) => (privateCareInsuranceAnnual.value = v));
   setIfDefined<boolean>('hasChildren', (v) => (hasChildren.value = v));
   setIfDefined<number>('childrenUnder25', (v) => (childrenUnder25.value = v));
+  setIfDefined<boolean>('isAlleinerziehend', (v) => (isAlleinerziehend.value = v));
   setIfDefined<number>('childAllowance', (v) => (childAllowance.value = v));
   setIfDefined<number>('childBenefitMonthlyPerChild', (v) => (childBenefitMonthlyPerChild.value = v));
   setIfDefined<number>('age', (v) => (age.value = v));
@@ -393,6 +443,9 @@ function applyInputState(d: Record<string, unknown>) {
   setIfDefined<SocialInsuranceKind>('spousePensionInsurance', (v) => (spousePensionInsurance.value = v));
   setIfDefined<SocialInsuranceKind>('spouseUnemploymentInsurance', (v) => (spouseUnemploymentInsurance.value = v));
   setIfDefined<number>('spouseAge', (v) => (spouseAge.value = v));
+  if (withSpouse.value) {
+    spousePaysChurchTax.value = paysChurchTax.value;
+  }
   setIfDefined<boolean>('hasNewJob', (v) => (hasNewJob.value = v));
   setIfDefined<number>('expectedMonthlySalaryMin', (v) => (expectedMonthlySalaryMin.value = v));
   setIfDefined<number>('expectedMonthlySalaryMax', (v) => (expectedMonthlySalaryMax.value = v));
@@ -402,7 +455,9 @@ function applyInputState(d: Record<string, unknown>) {
   setIfDefined<number>('severanceGross', (v) => (severanceGross.value = v));
   setDateIfDefined('unemploymentDate', (v) => (unemploymentDate.value = v));
   setIfDefined<number>('oldEmployerIncomeCurrentYear', (v) => (oldEmployerIncomeCurrentYear.value = v));
+  setIfDefined<number>('lastMonthlyGrossBeforeUnemployment', (v) => (lastMonthlyGrossBeforeUnemployment.value = v));
   setIfDefined<number>('unemploymentBenefitMonthly', (v) => (unemploymentBenefitMonthly.value = v));
+  setIfDefined<number>('alvInsuranceMonthsLast5Years', (v) => (alvInsuranceMonthsLast5Years.value = v));
   setIfDefined<boolean>('hasBenefitReductionPeriod', (v) => (hasBenefitReductionPeriod.value = v));
   setIfDefined<number>('benefitReductionMonths', (v) => (benefitReductionMonths.value = v));
   setIfDefined<boolean>('hasBenefitSuspensionPeriod', (v) => (hasBenefitSuspensionPeriod.value = v));
@@ -413,6 +468,7 @@ function applyInputState(d: Record<string, unknown>) {
   setIfDefined<number>('sharedDonationUserShare', (v) => (sharedDonationUserShare.value = v));
   setIfDefined<number>('spouseGrossIncomeYearly', (v) => (spouseGrossIncomeYearly.value = v));
   setIfDefined<number>('otherIncomeYearly', (v) => (otherIncomeYearly.value = v));
+  if (!canUseSingleParentRelief()) isAlleinerziehend.value = false;
 }
 
 function persistInputs(): void {
@@ -483,6 +539,7 @@ const familyTypeOptions = computed(() => [
   { label: t('form.familyTypeSingle'), value: false },
   { label: t('form.familyTypeFamily'), value: true }
 ]);
+const showSingleParentReliefOption = computed(() => canUseSingleParentRelief());
 
 // SelectButton Pass Through：active item 高亮风格与顶部 Toolbar 主菜单一致
 const activeContentStyle = {
@@ -508,13 +565,26 @@ const sharedIncomeSpouseShare = computed(() => 100 - sharedIncomeUserShare.value
 const sharedDonationSpouseShare = computed(() => 100 - sharedDonationUserShare.value);
 const newJobStartMinDate = computed(() => new Date());
 
-// 基于年龄的 ALG-I-Anspruchsdauer (§ 147 SGB III, vereinfacht)
+function isAlvEmployeeSubject(v: SocialInsuranceKind): boolean {
+  return v === 'statutoryMandatory' || v === 'employeeOnly';
+}
+
+function deriveAlgDurationMonthsByInsurance(ageValue: number, insuranceMonthsValue: number): number {
+  const months = Math.max(0, Math.min(60, Math.floor(insuranceMonthsValue)));
+  if (ageValue >= 58 && months >= 48) return 24;
+  if (ageValue >= 55 && months >= 36) return 18;
+  if (ageValue >= 50 && months >= 30) return 15;
+  if (months >= 24) return 12;
+  if (months >= 20) return 10;
+  if (months >= 16) return 8;
+  if (months >= 12) return 6;
+  return 0;
+}
+
+// ALG-I-Anspruchsdauer nach § 147 SGB III: Alter + versicherungspflichtige Monate.
 const unemploymentBenefitDurationMonths = computed(() => {
-  const a = age.value;
-  if (a >= 58) return 24;
-  if (a >= 55) return 18;
-  if (a >= 50) return 15;
-  return 12;
+  if (!isAlvEmployeeSubject(unemploymentInsurance.value)) return 0;
+  return deriveAlgDurationMonthsByInsurance(age.value, alvInsuranceMonthsLast5Years.value);
 });
 
 // ============ Tooltip-Inhalte (HTML) ============
@@ -523,16 +593,20 @@ const taxClassInfoTooltip = computed(() => {
   return `<p><strong>${t('form.taxClassInfoTitle')}</strong></p><p>${t('form.taxClassInfoIntro')}</p><ul>${items}</ul>`;
 });
 const careInsuranceInfoTooltip = computed(() => t('form.careInsuranceInfoTooltip'));
+const churchTaxInfoTooltip = computed(() => t('form.churchTaxInfoTooltip'));
 const healthInsuranceInfoTooltip = computed(() => t('form.healthInsuranceInfoTooltip'));
 const healthInsuranceRateInfoTooltip = computed(() => t('form.healthInsuranceRateInfoTooltip'));
 const privateInsuranceDeductibleTooltip = computed(() => t('form.privateInsuranceDeductibleTooltip'));
+const singleParentReliefTooltip = computed(() => t('form.singleParentReliefTooltip'));
 const childAllowanceInfoTooltip = computed(() => t('form.childAllowanceInfoTooltip'));
 const childBenefitInfoTooltip = computed(() => t('form.childBenefitInfoTooltip'));
 const pensionInsuranceInfoTooltip = computed(() => t('form.pensionInsuranceInfoTooltip'));
 const unemploymentInsuranceInfoTooltip = computed(() => t('form.unemploymentInsuranceInfoTooltip'));
+const alvInsuranceMonthsLast5YearsTooltip = computed(() => t('form.alvInsuranceMonthsLast5YearsTooltip'));
 const unemploymentBenefitDurationTooltip = computed(() => t('form.unemploymentBenefitDurationTooltip'));
 const possibleSeverancePaymentDatesTooltip = computed(() => t('form.possibleSeverancePaymentDatesTooltip'));
 const oldEmployerIncomeCurrentYearTooltip = computed(() => t('form.oldEmployerIncomeCurrentYearTooltip'));
+const lastMonthlyGrossBeforeUnemploymentTooltip = computed(() => t('form.lastMonthlyGrossBeforeUnemploymentTooltip'));
 const donationSectionTooltip = computed(() => t('form.donationSectionTooltip'));
 const salaryRangeSectionTooltip = computed(() => t('form.salaryRangeSectionTooltip'));
 const unemploymentBenefitMonthlyTooltip = computed(() => t('form.unemploymentBenefitMonthlyTooltip'));
@@ -715,7 +789,20 @@ function handleReset() {
 
             <!-- Kirchensteuer -->
             <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
-              <legend>{{ t('form.churchTax') }}</legend>
+              <legend class="flex items-center gap-2">
+                <span>{{ t('form.churchTax') }}</span>
+                <button
+                  v-tooltip.right="{
+                    value: churchTaxInfoTooltip,
+                    escape: false,
+                    class: 'tax-class-tooltip',
+                    showDelay: 150
+                  }"
+                  type="button"
+                  class="pi pi-info-circle cursor-help border-0 bg-transparent p-0 text-primary-600"
+                  :aria-label="t('form.churchTaxInfoAriaLabel')"
+                ></button>
+              </legend>
               <div class="flex min-h-9 items-center gap-5">
                 <div class="flex items-center gap-2">
                   <RadioButton v-model="paysChurchTax" input-id="paysChurchTaxYes" name="paysChurchTax" :value="true" size="small" />
@@ -924,6 +1011,33 @@ function handleReset() {
               />
             </div>
 
+            <fieldset v-if="showSingleParentReliefOption" class="m-0 flex flex-col gap-2 border-0 p-0">
+              <legend class="flex items-center gap-2">
+                <span>{{ t('form.singleParentRelief') }}</span>
+                <button
+                  v-tooltip.right="{
+                    value: singleParentReliefTooltip,
+                    escape: false,
+                    class: 'tax-class-tooltip',
+                    showDelay: 150
+                  }"
+                  type="button"
+                  class="pi pi-info-circle cursor-help border-0 bg-transparent p-0 text-primary-600"
+                  :aria-label="t('form.singleParentReliefAriaLabel')"
+                ></button>
+              </legend>
+              <div class="flex min-h-9 items-center gap-5">
+                <div class="flex items-center gap-2">
+                  <RadioButton v-model="isAlleinerziehend" input-id="isAlleinerziehendYes" name="isAlleinerziehend" :value="true" size="small" />
+                  <label class="text-surface-800" for="isAlleinerziehendYes">{{ t('form.yes') }}</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <RadioButton v-model="isAlleinerziehend" input-id="isAlleinerziehendNo" name="isAlleinerziehend" :value="false" size="small" />
+                  <label class="text-surface-800" for="isAlleinerziehendNo">{{ t('form.no') }}</label>
+                </div>
+              </div>
+            </fieldset>
+
             <div v-if="hasChildren" class="flex flex-col gap-2">
               <div class="flex items-center gap-2">
                 <label for="childAllowance">{{ t('form.childAllowance') }}</label>
@@ -1100,32 +1214,6 @@ function handleReset() {
                     fluid
                   />
                 </div>
-
-                <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
-                  <legend>{{ t('form.churchTax') }}</legend>
-                  <div class="flex min-h-9 items-center gap-5">
-                    <div class="flex items-center gap-2">
-                      <RadioButton
-                        v-model="spousePaysChurchTax"
-                        input-id="spousePaysChurchTaxYes"
-                        name="spousePaysChurchTax"
-                        :value="true"
-                        size="small"
-                      />
-                      <label class="text-surface-800" for="spousePaysChurchTaxYes">{{ t('form.yes') }}</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <RadioButton
-                        v-model="spousePaysChurchTax"
-                        input-id="spousePaysChurchTaxNo"
-                        name="spousePaysChurchTax"
-                        :value="false"
-                        size="small"
-                      />
-                      <label class="text-surface-800" for="spousePaysChurchTaxNo">{{ t('form.no') }}</label>
-                    </div>
-                  </div>
-                </fieldset>
 
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
@@ -1580,6 +1668,35 @@ function handleReset() {
 
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
+                    <label for="lastMonthlyGrossBeforeUnemployment">{{ t('form.lastMonthlyGrossBeforeUnemployment') }}</label>
+                    <button
+                      v-tooltip.right="{
+                        value: lastMonthlyGrossBeforeUnemploymentTooltip,
+                        escape: false,
+                        class: 'tax-class-tooltip',
+                        showDelay: 150
+                      }"
+                      type="button"
+                      class="pi pi-info-circle cursor-help border-0 bg-transparent p-0 text-primary-600"
+                      :aria-label="t('form.lastMonthlyGrossBeforeUnemploymentAriaLabel')"
+                    ></button>
+                  </div>
+                  <InputNumber
+                    v-model="lastMonthlyGrossBeforeUnemployment"
+                    input-id="lastMonthlyGrossBeforeUnemployment"
+                    :min="0"
+                    :step="100"
+                    mode="currency"
+                    currency="EUR"
+                    locale="de-DE"
+                    size="small"
+                    show-buttons
+                    fluid
+                  />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
                     <label for="unemploymentBenefitMonthly">{{ t('form.unemploymentBenefitMonthly') }}</label>
                     <button
                       v-tooltip.right="{
@@ -1600,6 +1717,37 @@ function handleReset() {
                     :step="100"
                     mode="currency"
                     currency="EUR"
+                    locale="de-DE"
+                    size="small"
+                    show-buttons
+                    fluid
+                  />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <label for="alvInsuranceMonthsLast5Years">{{ t('form.alvInsuranceMonthsLast5Years') }}</label>
+                    <button
+                      v-tooltip.right="{
+                        value: alvInsuranceMonthsLast5YearsTooltip,
+                        escape: false,
+                        class: 'tax-class-tooltip',
+                        showDelay: 150
+                      }"
+                      type="button"
+                      class="pi pi-info-circle cursor-help border-0 bg-transparent p-0 text-primary-600"
+                      :aria-label="t('form.alvInsuranceMonthsLast5YearsAriaLabel')"
+                    ></button>
+                  </div>
+                  <InputNumber
+                    v-model="alvInsuranceMonthsLast5Years"
+                    input-id="alvInsuranceMonthsLast5Years"
+                    :min="0"
+                    :max="60"
+                    :step="1"
+                    :min-fraction-digits="0"
+                    :max-fraction-digits="0"
+                    :suffix="t('form.monthsSuffix')"
                     locale="de-DE"
                     size="small"
                     show-buttons

@@ -5,13 +5,20 @@ import {
   ARBEITNEHMER_PAUSCHBETRAG,
   BBG_KV_PV_MONTHLY_2026,
   BBG_RV_ALV_MONTHLY_2026,
+  ALLGEMEINER_KV_RATE,
+  ERMAESSIGTER_KV_RATE,
+  PV_RATE_TOTAL_WITH_CHILD,
   PV_RATE_AN_WITH_CHILD,
   PV_RATE_AN_WITH_CHILD_SACHSEN,
+  PV_CHILDLESS_SURCHARGE_RATE,
+  PV_CHILD_DISCOUNT_RATE,
+  PV_CHILD_DISCOUNT_MAX_CHILDREN,
   RV_RATE_AN,
   ALV_RATE_AN,
   VORSORGE_KV_KRANKENGELD_ABSCHLAG,
   VORSORGE_BASIS_HOECHSTBETRAG_2026,
   SPENDEN_HOECHSTGRENZE_RATE,
+  SONDERAUSGABEN_PAUSCHBETRAG_SINGLE,
   GRUNDFREIBETRAG_2026,
   TARIF_ZONE2_END_2026,
   TARIF_ZONE3_END_2026,
@@ -28,6 +35,8 @@ import {
   KFB_HALF_PER_CHILD_2026,
   KFB_FULL_PER_CHILD_2026,
   KINDERGELD_PER_MONTH_PER_CHILD_2026,
+  ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_BASE_2026,
+  ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_ADDITIONAL_CHILD_2026,
   SOLI_FREIGRENZE_SINGLE_2026,
   SOLI_FREIGRENZE_JOINT_2026,
   SOLI_RATE,
@@ -41,6 +50,7 @@ import type {
   IncomeBreakdown,
   SvBreakdown,
   SvSegment,
+  SelfPaidHealthInsuranceSegment,
   PersonYearResult,
   PersonTaxResult,
   JointTaxResult,
@@ -59,6 +69,18 @@ function fullMonthsBetween(start: Date, end: Date): number {
 /** 在日期上加 n 个月（保持每月 1 号） */
 function addMonths(date: Date, n: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + n, 1);
+}
+
+function firstDayOfNextMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
+function maxDate(...dates: Date[]): Date {
+  return new Date(Math.max(...dates.map((d) => d.getTime())));
+}
+
+function minDate(...dates: Date[]): Date {
+  return new Date(Math.min(...dates.map((d) => d.getTime())));
 }
 
 /** 把日期裁剪到指定税年内（用于计算与该年的重叠月数） */
@@ -96,14 +118,18 @@ export function calcPersonIncome(person: PersonIncomeData, scenario: ScenarioOve
   // Sperrzeit/Ruhezeit (§ 158/159 SGB III) wird im Adapter durch Setzen von algStartDate
   // > unemploymentDate abgebildet; während [unemploymentDate, algStartDate) gibt es kein ALG.
   let algMonths = 0;
+  let algCoverageEndRaw: Date | null = null;
   if (person.unemploymentDate && person.unemploymentBenefitDuration) {
     const algStartRaw = person.algStartDate ?? person.unemploymentDate;
     const algMaxEnd = addMonths(algStartRaw, person.unemploymentBenefitDuration);
+    algCoverageEndRaw = algMaxEnd;
     let algEndRaw = algMaxEnd;
     if (newJobStartRaw && newJobStartRaw < algEndRaw) algEndRaw = newJobStartRaw;
     const algStart = clampToYear(algStartRaw, year, true);
     const algEnd = clampToYear(algEndRaw, year, false);
     algMonths = Math.max(0, fullMonthsBetween(algStart, algEnd));
+  } else if (person.unemploymentDate) {
+    algCoverageEndRaw = person.unemploymentDate;
   }
   const unemploymentBenefit = algMonths * person.monthlyUnemploymentBenefit;
 
@@ -129,30 +155,104 @@ export function calcPersonIncome(person: PersonIncomeData, scenario: ScenarioOve
     svSegments.push({ kind: 'newJob', monthlyGross: newMonthlyGross, months: newMonths });
   }
 
+  // ---- Freiwillige GKV/PV nach ALG-I-Ende wegen Entlassungsentschaedigung ----
+  // § 10 Abs. 1 S. 4 SGB V blockiert die Familienversicherung fuer die Monate,
+  // in denen die Abfindung rechnerisch durch das letzte Monatsentgelt gedeckt ist.
+  // Die App modelliert daraus konservativ eine Selbstzahler-Phase nach ALG-I-Ende
+  // und vor Beginn einer neuen Arbeit. RV/ALV entstehen in dieser Phase nicht.
+  const selfPaidHealthInsuranceSegments: SelfPaidHealthInsuranceSegment[] = [];
+  if (person.personKey === 'user' && person.unemploymentDate && person.severance > 0 && person.lastMonthlyGrossBeforeUnemployment > 0) {
+    const severanceMonths = Math.ceil(person.severance / person.lastMonthlyGrossBeforeUnemployment);
+    const severanceCoverageStartRaw = firstDayOfNextMonth(scenario.severancePaymentDate);
+    const severanceCoverageEndRaw = addMonths(severanceCoverageStartRaw, severanceMonths);
+    const postAlgStartRaw = algCoverageEndRaw ?? person.unemploymentDate;
+    const selfPayStartRaw = maxDate(person.unemploymentDate, postAlgStartRaw, severanceCoverageStartRaw);
+    const selfPayEndRaw = minDate(newJobStartRaw ?? yearEnd, severanceCoverageEndRaw, yearEnd);
+    const selfPayStart = clampToYear(selfPayStartRaw, year, true);
+    const selfPayEnd = clampToYear(selfPayEndRaw, year, false);
+    const selfPayMonths = Math.max(0, fullMonthsBetween(selfPayStart, selfPayEnd));
+    if (selfPayMonths > 0) {
+      selfPaidHealthInsuranceSegments.push({
+        kind: 'postAlgUnemployed',
+        monthlyGrossBeforeCap: person.lastMonthlyGrossBeforeUnemployment,
+        monthlyAssessment: Math.min(person.lastMonthlyGrossBeforeUnemployment, BBG_KV_PV_MONTHLY_2026),
+        months: selfPayMonths
+      });
+    }
+  }
+
   return {
     oldJobWage,
     newJobWage,
     unemploymentBenefit,
     rentalIncome: person.rentalIncome,
     severance,
-    svSegments
+    svSegments,
+    selfPaidHealthInsuranceSegments
   };
 }
 
 // ---------- Sozialversicherung（AN-Anteil） ----------
 
 /**
+ * PV-AN-Satz 2026 nach § 55 Abs. 3 und § 58 SGB XI.
+ *
+ * Vereinfachung: Die Eingabe enthält nur das Alter, kein Geburtsdatum. Der
+ * Kinderlosenzuschlag wird daher ganzjährig ab age >= 23 berücksichtigt,
+ * obwohl er rechtlich erst nach Ablauf des Geburtstagsmonats beginnt.
+ */
+export function calcPvRateAn(stamm: PersonProfile): number {
+  const baseRate = stamm.state === 'SN' ? PV_RATE_AN_WITH_CHILD_SACHSEN : PV_RATE_AN_WITH_CHILD;
+  const hasAnyChildren = stamm.hasChildren || stamm.childrenUnder25 > 0;
+
+  if (!hasAnyChildren) {
+    return stamm.age >= 23 ? baseRate + PV_CHILDLESS_SURCHARGE_RATE : baseRate;
+  }
+
+  const relevantChildrenUnder25 = Math.max(0, Math.min(stamm.childrenUnder25, PV_CHILD_DISCOUNT_MAX_CHILDREN));
+  const discountChildren = Math.max(0, relevantChildrenUnder25 - 1);
+  return baseRate - discountChildren * PV_CHILD_DISCOUNT_RATE;
+}
+
+/** PV-Mitgliedssatz fuer Selbstzahler, ohne Arbeitgeber-/Sachsen-Aufteilung. */
+export function calcPvRateMember(stamm: PersonProfile): number {
+  const hasAnyChildren = stamm.hasChildren || stamm.childrenUnder25 > 0;
+
+  if (!hasAnyChildren) {
+    return stamm.age >= 23 ? PV_RATE_TOTAL_WITH_CHILD + PV_CHILDLESS_SURCHARGE_RATE : PV_RATE_TOTAL_WITH_CHILD;
+  }
+
+  const relevantChildrenUnder25 = Math.max(0, Math.min(stamm.childrenUnder25, PV_CHILD_DISCOUNT_MAX_CHILDREN));
+  const discountChildren = Math.max(0, relevantChildrenUnder25 - 1);
+  return PV_RATE_TOTAL_WITH_CHILD - discountChildren * PV_CHILD_DISCOUNT_RATE;
+}
+
+/**
  * 计算 SV-AN-Anteil 总额（KV/PV/RV/ALV），按月度 BBG 单独封顶。
  * 返回各分量及合计。
  */
-export function calcSvAnteil(stamm: PersonProfile, segments: SvSegment[]): SvBreakdown {
+export function calcSvAnteil(
+  stamm: PersonProfile,
+  segments: SvSegment[],
+  selfPaidHealthInsuranceSegments: SelfPaidHealthInsuranceSegment[] = []
+): SvBreakdown {
   let kv = 0;
   let pv = 0;
   let rv = 0;
   let alv = 0;
+  let kvEmployment = 0;
+  let pvEmployment = 0;
+  let rvEmployment = 0;
+  let alvEmployment = 0;
+  let kvSelfPaidAfterAlg = 0;
+  let pvSelfPaidAfterAlg = 0;
+  let selfPaidHealthInsuranceMonths = 0;
+  let selfPaidHealthInsuranceMonthlyGross = 0;
+  let selfPaidHealthInsuranceMonthlyBase = 0;
 
-  // PV-AN-Satz：in Sachsen 0,5 pp höher als im Rest der Republik（mit Kind = 2,30 %）。
-  const pvRate = stamm.state === 'SN' ? PV_RATE_AN_WITH_CHILD_SACHSEN : PV_RATE_AN_WITH_CHILD;
+  const pvRate = calcPvRateAn(stamm);
+  const pvMemberRate = calcPvRateMember(stamm);
+  const selfPaidKvRate = ERMAESSIGTER_KV_RATE + Math.max(0, stamm.healthInsuranceRate - ALLGEMEINER_KV_RATE);
 
   // Bei PKV: AN zahlt feste Jahresbeiträge unabhängig vom Monatsbrutto; BBG-Logik entfällt.
   // RV/ALV bleiben unverändert (nur an Beschäftigung gekoppelt, nicht an KV-Form).
@@ -176,27 +276,71 @@ export function calcSvAnteil(stamm: PersonProfile, segments: SvSegment[]): SvBre
   if (isPkv) {
     kv = Math.max(0, stamm.privateAnnualKV ?? 0);
     pv = Math.max(0, stamm.privateAnnualPV ?? 0);
+    kvEmployment = kv;
+    pvEmployment = pv;
   }
 
   for (const seg of segments) {
     const cappedKvPv = Math.min(seg.monthlyGross, BBG_KV_PV_MONTHLY_2026);
     const cappedRvAlv = Math.min(seg.monthlyGross, BBG_RV_ALV_MONTHLY_2026);
     if (!isPkv) {
-      kv += cappedKvPv * (stamm.healthInsuranceRate / 2) * seg.months;
-      pv += cappedKvPv * pvRate * seg.months;
+      const kvPart = cappedKvPv * (stamm.healthInsuranceRate / 2) * seg.months;
+      const pvPart = cappedKvPv * pvRate * seg.months;
+      kv += kvPart;
+      pv += pvPart;
+      kvEmployment += kvPart;
+      pvEmployment += pvPart;
     }
-    if (stamm.pensionInsurance) rv += cappedRvAlv * RV_RATE_AN * seg.months;
-    if (stamm.unemploymentInsurance) alv += cappedRvAlv * ALV_RATE_AN * seg.months;
+    if (stamm.pensionInsurance) {
+      const rvPart = cappedRvAlv * RV_RATE_AN * seg.months;
+      rv += rvPart;
+      rvEmployment += rvPart;
+    }
+    if (stamm.unemploymentInsurance) {
+      const alvPart = cappedRvAlv * ALV_RATE_AN * seg.months;
+      alv += alvPart;
+      alvEmployment += alvPart;
+    }
   }
 
-  return { kv, pv, rv, alv };
+  if (!isPkv) {
+    for (const seg of selfPaidHealthInsuranceSegments) {
+      const cappedKvPv = Math.min(seg.monthlyAssessment, BBG_KV_PV_MONTHLY_2026);
+      const kvPart = cappedKvPv * selfPaidKvRate * seg.months;
+      const pvPart = cappedKvPv * pvMemberRate * seg.months;
+      kv += kvPart;
+      pv += pvPart;
+      kvSelfPaidAfterAlg += kvPart;
+      pvSelfPaidAfterAlg += pvPart;
+      selfPaidHealthInsuranceMonths += seg.months;
+      selfPaidHealthInsuranceMonthlyGross = Math.max(selfPaidHealthInsuranceMonthlyGross, seg.monthlyGrossBeforeCap);
+      selfPaidHealthInsuranceMonthlyBase = Math.max(selfPaidHealthInsuranceMonthlyBase, cappedKvPv);
+    }
+  }
+
+  return {
+    kv,
+    pv,
+    rv,
+    alv,
+    kvEmployment,
+    pvEmployment,
+    rvEmployment,
+    alvEmployment,
+    kvSelfPaidAfterAlg,
+    pvSelfPaidAfterAlg,
+    selfPaidHealthInsuranceMonths,
+    selfPaidHealthInsuranceMonthlyGross,
+    selfPaidHealthInsuranceMonthlyBase
+  };
 }
 
 // ---------- Vorsorgeaufwendungen § 10 EStG ----------
 
 /**
  * Vorsorgeaufwendungen-Abzug（vereinfacht）:
- *   GKV: RV-AN × 100 % + KV-AN × 96 %（Krankengeld-Abschlag § 10 Abs. 1 Nr. 3 Satz 4 EStG）+ PV-AN × 100 %
+ *   GKV: RV-AN × 100 % + KV-AN Beschäftigung × 96 %（Krankengeld-Abschlag）+
+ *        KV-Selbstzahlung ohne Krankengeldanspruch × 100 % + PV × 100 %
  *   PKV: RV-AN × 100 % + KV-Basisbeitrag × 100 %                                      + PV-Basisbeitrag × 100 %
  * (Bei PKV ist der Krankengeld-Anteil typischerweise nicht im Basisbeitrag enthalten;
  *  der User gibt laut UI-Tooltip nur den Basisanteil ein.)
@@ -210,9 +354,12 @@ export function calcSvAnteil(stamm: PersonProfile, segments: SvSegment[]): SvBre
  * Eingaben / Rürup-Kombinationen。
  */
 export function calcPensionExpenseDeduction(sv: SvBreakdown, kvKind: 'gkv' | 'pkv' = 'gkv'): number {
-  const kvFactor = kvKind === 'pkv' ? 1 : 1 - VORSORGE_KV_KRANKENGELD_ABSCHLAG;
   const cappedRv = Math.min(sv.rv, VORSORGE_BASIS_HOECHSTBETRAG_2026);
-  return cappedRv + sv.kv * kvFactor + sv.pv;
+  if (kvKind === 'gkv') {
+    const employmentKvDeduction = sv.kvEmployment * (1 - VORSORGE_KV_KRANKENGELD_ABSCHLAG);
+    return cappedRv + employmentKvDeduction + sv.kvSelfPaidAfterAlg + sv.pv;
+  }
+  return cappedRv + sv.kv + sv.pv;
 }
 
 // ---------- Spenden § 10b EStG ----------
@@ -223,27 +370,57 @@ export function calcDonationDeduction(annualDonation: number, totalIncomeForDona
   return Math.min(annualDonation, cap);
 }
 
+/** Allgemeine Sonderausgaben nach § 10c EStG: mindestens 36 € pro aktivem Steuerpflichtigen. */
+export function calcGeneralSpecialExpensesDeduction(
+  stamm: PersonProfile,
+  donationDeduction: number
+): {
+  generalSpecialExpensesDeduction: number;
+  sonderausgabenPauschbetrag: number;
+} {
+  const sonderausgabenPauschbetrag = stamm.activeTaxSubject ? SONDERAUSGABEN_PAUSCHBETRAG_SINGLE : 0;
+  return {
+    sonderausgabenPauschbetrag,
+    generalSpecialExpensesDeduction: Math.max(donationDeduction, sonderausgabenPauschbetrag)
+  };
+}
+
+/** Entlastungsbetrag fuer Alleinerziehende (§ 24b EStG). */
+export function calcSingleParentRelief(stamm: PersonProfile): number {
+  if (!stamm.singleParentReliefEligible) return 0;
+  const childCount = Math.max(0, Math.floor(stamm.childrenUnder25));
+  if (childCount <= 0) return 0;
+  return ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_BASE_2026 + Math.max(0, childCount - 1) * ENTLASTUNGSBETRAG_ALLEINERZIEHENDE_ADDITIONAL_CHILD_2026;
+}
+
 // ---------- 单人单年完整计算 ----------
 
 export function computePersonYear(stamm: PersonProfile, einkommen: PersonIncomeData, scenario: ScenarioOverride, year: number): PersonYearResult {
   const income = calcPersonIncome(einkommen, scenario, year);
   const grossWages = income.oldJobWage + income.newJobWage;
-  // Werbungskosten-Pauschbetrag nur, wenn überhaupt Arbeitslohn bezogen wurde
-  const incomeRelatedExpenses = grossWages > 0 ? ARBEITNEHMER_PAUSCHBETRAG : 0;
+  // § 9a EStG: Arbeitnehmer-Pauschbetrag nur bis zur Höhe des Arbeitslohns.
+  // Der nicht verbrauchte Teil mindert nach § 32b Abs. 2 Nr. 1 EStG das ALG I,
+  // das in den Progressionsvorbehalt einfließt.
+  const incomeRelatedExpenses = Math.min(Math.max(0, grossWages), ARBEITNEHMER_PAUSCHBETRAG);
+  const unusedArbeitnehmerPauschbetrag = Math.max(0, ARBEITNEHMER_PAUSCHBETRAG - incomeRelatedExpenses);
+  const unemploymentBenefitPauschbetragDeduction = Math.min(Math.max(0, income.unemploymentBenefit), unusedArbeitnehmerPauschbetrag);
+  const unemploymentBenefitForProgression = Math.max(0, income.unemploymentBenefit - unemploymentBenefitPauschbetragDeduction);
   const employmentIncome = grossWages - incomeRelatedExpenses;
   const rentalIncomeNet = income.rentalIncome;
   // Sonstige Einkünfte (§ 22 EStG, vereinfacht netto); direkt in totalIncome.
   const otherIncome = einkommen.otherIncome ?? 0;
-  const totalIncome = employmentIncome + rentalIncomeNet + otherIncome;
+  const singleParentRelief = calcSingleParentRelief(stamm);
+  const totalIncome = employmentIncome + rentalIncomeNet + otherIncome - singleParentRelief;
 
-  const sv = calcSvAnteil(stamm, income.svSegments);
+  const sv = calcSvAnteil(stamm, income.svSegments, income.selfPaidHealthInsuranceSegments);
   const pensionExpenseDeduction = calcPensionExpenseDeduction(sv, stamm.kvKind ?? 'gkv');
   // § 10b Höchstgrenze: 20 % des Gesamtbetrags der Einkünfte INKL. Abfindung.
   // Die Fünftelregelung (§ 34 EStG) ändert nur die Tarifberechnung, nicht die Zugehörigkeit
   // der Abfindung zu den Einkünften aus § 19 EStG.
   const totalIncomeForDonations = totalIncome + income.severance;
   const donationDeduction = calcDonationDeduction(einkommen.annualDonation, totalIncomeForDonations);
-  const specialExpenses = pensionExpenseDeduction + donationDeduction;
+  const { generalSpecialExpensesDeduction, sonderausgabenPauschbetrag } = calcGeneralSpecialExpensesDeduction(stamm, donationDeduction);
+  const specialExpenses = pensionExpenseDeduction + generalSpecialExpensesDeduction;
 
   const zvEwithoutKFB = totalIncome - specialExpenses;
 
@@ -252,10 +429,16 @@ export function computePersonYear(stamm: PersonProfile, einkommen: PersonIncomeD
     grossWages,
     incomeRelatedExpenses,
     employmentIncome,
+    unusedArbeitnehmerPauschbetrag,
+    unemploymentBenefitPauschbetragDeduction,
+    unemploymentBenefitForProgression,
     rentalIncomeNet,
+    singleParentRelief,
     totalIncome,
     sv,
     pensionExpenseDeduction,
+    generalSpecialExpensesDeduction,
+    sonderausgabenPauschbetrag,
     donationDeduction,
     specialExpenses,
     zvEwithoutKFB
@@ -294,13 +477,16 @@ export function splittingESt(zvE: number): number {
 
 /**
  * § 32b EStG Progressionsvorbehalt（vereinfacht, nur ALG I als Lohnersatzleistung）：
- * besonderer Steuersatz = ESt(zvE + alg) / (zvE + alg); tarifliche ESt = besSatz × zvE。
+ * `progressionIncome` ist ALG I nach Abzug des nicht verbrauchten
+ * Arbeitnehmer-Pauschbetrags (§ 32b Abs. 2 Nr. 1 i.V.m. § 9a EStG).
+ * besonderer Steuersatz = ESt(zvE + progressionIncome) / (zvE + progressionIncome);
+ * tarifliche ESt = besSatz × zvE。
  * In Einzelveranlagung: tarifFn = grundtarifEst。
  */
-export function estWithProgressionsvorbehalt(zvE: number, alg: number, joint: boolean): number {
+export function estWithProgressionsvorbehalt(zvE: number, progressionIncome: number, joint: boolean): number {
   const tarifFn = joint ? splittingESt : grundtarifESt;
-  if (alg <= 0 || zvE <= 0) return tarifFn(zvE);
-  const total = zvE + alg;
+  if (progressionIncome <= 0 || zvE <= 0) return tarifFn(zvE);
+  const total = zvE + progressionIncome;
   const estTotal = tarifFn(total);
   if (total <= 0) return tarifFn(zvE);
   const satz = estTotal / total;
@@ -314,14 +500,20 @@ export function estWithProgressionsvorbehalt(zvE: number, alg: number, joint: bo
  * (Abfindung). Der Aufrufer übergibt also `zvEwithoutKFB` bzw. `zvEwithKFB` aus
  * `PersonYearResult` direkt - diese enthalten Abfindung nicht。
  *
- *   tariflicheESt = ESt(zvEord) + 5 × [ ESt(zvEord + Abfindung/5) - ESt(zvEord) ]
+ *   regulär: tariflicheESt = ESt(zvEord) + 5 × [ ESt(zvEord + Abfindung/5) - ESt(zvEord) ]
+ *   § 34 Abs. 1 Satz 3: wenn zvEord < 0 und zvEord + Abfindung > 0,
+ *   dann tariflicheESt = 5 × ESt((zvEord + Abfindung) / 5)
  *
  * Ohne Abfindung degeneriert die Formel zu ESt(zvEord)。
  */
-export function tariffEstWithFuenftelAndProgrV(zvEord: number, abfindung: number, alg: number, joint: boolean): number {
-  const estOhneAO = estWithProgressionsvorbehalt(zvEord, alg, joint);
+export function tariffEstWithFuenftelAndProgrV(zvEord: number, abfindung: number, progressionIncome: number, joint: boolean): number {
+  const estOhneAO = estWithProgressionsvorbehalt(zvEord, progressionIncome, joint);
   if (abfindung <= 0) return estOhneAO;
-  const estMitFuenftel = estWithProgressionsvorbehalt(zvEord + abfindung / 5, alg, joint);
+  const totalZvE = zvEord + abfindung;
+  if (zvEord < 0 && totalZvE > 0) {
+    return 5 * estWithProgressionsvorbehalt(totalZvE / 5, progressionIncome, joint);
+  }
+  const estMitFuenftel = estWithProgressionsvorbehalt(zvEord + abfindung / 5, progressionIncome, joint);
   const zusatz = 5 * (estMitFuenftel - estOhneAO);
   return estOhneAO + Math.max(0, zusatz);
 }
@@ -342,9 +534,11 @@ export function computePersonTax(
   const zvEwithKFB = zvEwithoutKFB - kfbHalf;
   const severance = person.income.severance;
   const unemploymentBenefit = person.income.unemploymentBenefit;
+  const unemploymentBenefitPauschbetragDeduction = person.unemploymentBenefitPauschbetragDeduction;
+  const unemploymentBenefitForProgression = person.unemploymentBenefitForProgression;
 
-  const tarifIncomeTaxWithoutKFB = tariffEstWithFuenftelAndProgrV(zvEwithoutKFB, severance, unemploymentBenefit, false);
-  const tarifIncomeTaxWithKFB = tariffEstWithFuenftelAndProgrV(zvEwithKFB, severance, unemploymentBenefit, false);
+  const tarifIncomeTaxWithoutKFB = tariffEstWithFuenftelAndProgrV(zvEwithoutKFB, severance, unemploymentBenefitForProgression, false);
+  const tarifIncomeTaxWithKFB = tariffEstWithFuenftelAndProgrV(zvEwithKFB, severance, unemploymentBenefitForProgression, false);
 
   // Kindergeld-Anteil（Hälfte pro Elternteil）für Günstigerprüfung。Erlaubt User-Override。
   const kindergeldMonthlyPerChild = einkommen.childBenefitMonthlyPerChild ?? KINDERGELD_PER_MONTH_PER_CHILD_2026;
@@ -353,9 +547,11 @@ export function computePersonTax(
   const kfbPreferred = kfbSavings > childBenefitShare;
   // § 31 Satz 4：bei KFB-Wahl wird（anteiliges）Kindergeld der tariflichen ESt hinzugerechnet。
   const assessedIncomeTax = kfbPreferred ? tarifIncomeTaxWithKFB + childBenefitShare : tarifIncomeTaxWithoutKFB;
-  const soli = calcSoli(assessedIncomeTax);
-  // Kirchensteuer：8 %/9 % auf festzus. Est, sofern kirchensteuerpflichtig。
-  const kirchensteuer = stamm.churchTax ? Math.max(0, assessedIncomeTax) * kirchensteuerRate(stamm.state) : 0;
+  // § 51a EStG: Soli/Kirchensteuer verwenden bei Kindern die ESt mit KFB,
+  // ohne Kindergeld-Hinzurechnung aus der Günstigerprüfung.
+  const zuschlagsteuerBaseIncomeTax = tarifIncomeTaxWithKFB;
+  const soli = calcSoli(zuschlagsteuerBaseIncomeTax);
+  const kirchensteuer = stamm.churchTax ? Math.max(0, zuschlagsteuerBaseIncomeTax) * kirchensteuerRate(stamm.state) : 0;
 
   return {
     zvEwithoutKFB,
@@ -363,12 +559,15 @@ export function computePersonTax(
     kfbHalf,
     severance,
     unemploymentBenefit,
+    unemploymentBenefitPauschbetragDeduction,
+    unemploymentBenefitForProgression,
     tarifIncomeTaxWithoutKFB,
     tarifIncomeTaxWithKFB,
     childBenefitShare,
     kfbSavings,
     kfbPreferred,
     assessedIncomeTax,
+    zuschlagsteuerBaseIncomeTax,
     soli,
     kirchensteuer
   };
@@ -378,13 +577,13 @@ export function computePersonTax(
 
 /**
  * Solidaritätszuschlag bei Einzelveranlagung 2026。
- *   - ESt ≤ 19.950 €：0 €（Freigrenze）
- *   - sonst：min(5,5 % × ESt；11,9 % × (ESt - 19.950)）
- *     （Milderungszone bis 33.912 €，danach greift der Cap 5,5 % × ESt）
- * ESt wird auf vollen Euro abgerundet，das Ergebnis ebenfalls。
+ *   - §-51a-Bemessungsgrundlage ≤ 20.350 €：0 €（Freigrenze）
+ *   - sonst：min(5,5 % × Basis；11,9 % × (Basis - 20.350)）
+ *     （Milderungszone bis ca. 37.839 €，danach greift der Cap 5,5 % × ESt）
+ * Basis wird auf vollen Euro abgerundet，das Ergebnis ebenfalls。
  */
-export function calcSoli(assessedIncomeTax: number): number {
-  const est = Math.floor(Math.max(0, assessedIncomeTax));
+export function calcSoli(zuschlagsteuerBaseIncomeTax: number): number {
+  const est = Math.floor(Math.max(0, zuschlagsteuerBaseIncomeTax));
   if (est <= SOLI_FREIGRENZE_SINGLE_2026) return 0;
   const cap = SOLI_RATE * est;
   const milderung = SOLI_MILDERUNGSZONE_RATE * (est - SOLI_FREIGRENZE_SINGLE_2026);
@@ -393,15 +592,15 @@ export function calcSoli(assessedIncomeTax: number): number {
 
 /**
  * Solidaritätszuschlag bei Zusammenveranlagung 2026。
- * Verdoppelte Schwellen：Freigrenze 39.900 €，Milderungszone bis 67.824 €。
+ * Verdoppelte Schwellen：Freigrenze 40.700 €，Milderungszone bis ca. 75.678 €。
  *
- * Rechtsgrundlage：§ 3 Abs. 4 SolzG 1995 - bei Anwendung des Splittingverfahrens
- * (§ 32a Abs. 5 EStG) verdoppeln sich Freigrenze und Obergrenze der Milderungszone
+ * Rechtsgrundlage：§ 3 Abs. 3 SolzG 1995 - bei Anwendung des Splittingverfahrens
+ * (§ 32a Abs. 5 EStG) verdoppelt sich die Freigrenze
  * gegenüber der Einzelveranlagung。Der lineare Cap（5,5 %）und die Milderungsrate
  *（11,9 %）bleiben identisch。
  */
-export function calcSoliJoint(assessedIncomeTaxJoint: number): number {
-  const est = Math.floor(Math.max(0, assessedIncomeTaxJoint));
+export function calcSoliJoint(zuschlagsteuerBaseIncomeTaxJoint: number): number {
+  const est = Math.floor(Math.max(0, zuschlagsteuerBaseIncomeTaxJoint));
   if (est <= SOLI_FREIGRENZE_JOINT_2026) return 0;
   const cap = SOLI_RATE * est;
   const milderung = SOLI_MILDERUNGSZONE_RATE * (est - SOLI_FREIGRENZE_JOINT_2026);
@@ -418,11 +617,11 @@ export function calcSoliJoint(assessedIncomeTaxJoint: number): number {
  * - § 32b Progressionsvorbehalt mit summiertem ALG
  * - § 34 Fünftelregelung mit summierter Abfindung（rechnerisch，da nur User Abfindung hat）
  * - Günstigerprüfung § 31 EStG：KFB-Ersparnis vs. volles Kindergeld
- * - Soli mit Joint-Schwellen（39.900 € / 67.824 €）
+ * - Soli mit Joint-Schwellen（40.700 € / ca. 75.678 €）
  */
 export function computeJointTax(
   stammUser: PersonProfile,
-  stammSpouse: PersonProfile,
+  _stammSpouse: PersonProfile,
   einkommenUser: PersonIncomeData,
   einkommenSpouse: PersonIncomeData,
   user: PersonYearResult,
@@ -434,10 +633,13 @@ export function computeJointTax(
   const zvEjointWithKFB = zvEjointWithoutKFB - kfbFull;
   const severanceJoint = user.income.severance + spouse.income.severance;
   const unemploymentBenefitJoint = user.income.unemploymentBenefit + spouse.income.unemploymentBenefit;
+  const unemploymentBenefitPauschbetragDeductionJoint =
+    user.unemploymentBenefitPauschbetragDeduction + spouse.unemploymentBenefitPauschbetragDeduction;
+  const unemploymentBenefitJointForProgression = user.unemploymentBenefitForProgression + spouse.unemploymentBenefitForProgression;
 
   // Splittingtarif：tariffEstWithFuenftelAndProgrV mit joint=true wendet splittingESt an
-  const tarifIncomeTaxWithoutKFB = tariffEstWithFuenftelAndProgrV(zvEjointWithoutKFB, severanceJoint, unemploymentBenefitJoint, true);
-  const tarifIncomeTaxWithKFB = tariffEstWithFuenftelAndProgrV(zvEjointWithKFB, severanceJoint, unemploymentBenefitJoint, true);
+  const tarifIncomeTaxWithoutKFB = tariffEstWithFuenftelAndProgrV(zvEjointWithoutKFB, severanceJoint, unemploymentBenefitJointForProgression, true);
+  const tarifIncomeTaxWithKFB = tariffEstWithFuenftelAndProgrV(zvEjointWithKFB, severanceJoint, unemploymentBenefitJointForProgression, true);
 
   // Volles Kindergeld für Günstigerprüfung（User-Override falls vorhanden，sonst Default）。
   const kindergeldMonthlyPerChild =
@@ -447,13 +649,12 @@ export function computeJointTax(
   const kfbPreferred = kfbSavings > childBenefitFull;
   // § 31 Satz 4：bei KFB-Wahl wird Kindergeld der tariflichen ESt hinzugerechnet。
   const assessedIncomeTax = kfbPreferred ? tarifIncomeTaxWithKFB + childBenefitFull : tarifIncomeTaxWithoutKFB;
-  const soli = calcSoliJoint(assessedIncomeTax);
-  // Kirchensteuer im Joint-Modus：jeder Ehegatte zahlt KISt nur，wenn er kirchensteuerpflichtig ist。
-  // Bemessungsgrundlage：Hälfte der gemeinsamen festzus. ESt（vereinfachte Halbteilung）。
-  const halfEst = Math.max(0, assessedIncomeTax) / 2;
-  const kistUser = stammUser.churchTax ? halfEst * kirchensteuerRate(stammUser.state) : 0;
-  const kistSpouse = stammSpouse.churchTax ? halfEst * kirchensteuerRate(stammSpouse.state) : 0;
-  const kirchensteuer = kistUser + kistSpouse;
+  // § 51a EStG: Zuschlagsteuern verwenden die gemeinsame ESt mit vollem KFB,
+  // ohne Kindergeld-Hinzurechnung. Produktannahme: In Familie gelten beide
+  // Ehegatten als gleich kirchensteuerpflichtig; gemischte Ehen werden nicht modelliert.
+  const zuschlagsteuerBaseIncomeTaxJoint = tarifIncomeTaxWithKFB;
+  const soli = calcSoliJoint(zuschlagsteuerBaseIncomeTaxJoint);
+  const kirchensteuer = stammUser.churchTax ? Math.max(0, zuschlagsteuerBaseIncomeTaxJoint) * kirchensteuerRate(stammUser.state) : 0;
 
   return {
     zvEjointWithoutKFB,
@@ -461,12 +662,15 @@ export function computeJointTax(
     kfbFull,
     severanceJoint,
     unemploymentBenefitJoint,
+    unemploymentBenefitPauschbetragDeductionJoint,
+    unemploymentBenefitJointForProgression,
     tarifIncomeTaxWithoutKFB,
     tarifIncomeTaxWithKFB,
     childBenefitFull,
     kfbSavings,
     kfbPreferred,
     assessedIncomeTax,
+    zuschlagsteuerBaseIncomeTaxJoint,
     soli,
     kirchensteuer
   };
@@ -483,8 +687,7 @@ function distributeJointToPersons(
   userTaxSeparate: PersonTaxResult,
   spouseTaxSeparate: PersonTaxResult,
   joint: JointTaxResult,
-  stammUser: PersonProfile,
-  stammSpouse: PersonProfile
+  stammUser: PersonProfile
 ): { userTax: PersonTaxResult; spouseTax: PersonTaxResult } {
   const denom = userTaxSeparate.tarifIncomeTaxWithoutKFB + spouseTaxSeparate.tarifIncomeTaxWithoutKFB;
   const userShare = denom > 0 ? userTaxSeparate.tarifIncomeTaxWithoutKFB / denom : 0.5;
@@ -493,13 +696,27 @@ function distributeJointToPersons(
   const spouseAssessed = joint.assessedIncomeTax * spouseShare;
   const userSoli = joint.soli * userShare;
   const spouseSoli = joint.soli * spouseShare;
-  // Kirchensteuer pro Person：Hälfte des gemeinsamen festzus. ESt × individueller Satz，sofern pflichtig。
-  const halfEst = Math.max(0, joint.assessedIncomeTax) / 2;
-  const userKist = stammUser.churchTax ? halfEst * kirchensteuerRate(stammUser.state) : 0;
-  const spouseKist = stammSpouse.churchTax ? halfEst * kirchensteuerRate(stammSpouse.state) : 0;
+  const userZuschlagsteuerBase = joint.zuschlagsteuerBaseIncomeTaxJoint * userShare;
+  const spouseZuschlagsteuerBase = joint.zuschlagsteuerBaseIncomeTaxJoint * spouseShare;
+  // Anzeige-Aufteilung: gemeinsames Ergebnis wird je zur Hälfte den Ehegatten zugeordnet.
+  const halfKirchensteuer = joint.kirchensteuer / 2;
+  const userKist = stammUser.churchTax ? halfKirchensteuer : 0;
+  const spouseKist = stammUser.churchTax ? halfKirchensteuer : 0;
   return {
-    userTax: { ...userTaxSeparate, assessedIncomeTax: userAssessed, soli: userSoli, kirchensteuer: userKist },
-    spouseTax: { ...spouseTaxSeparate, assessedIncomeTax: spouseAssessed, soli: spouseSoli, kirchensteuer: spouseKist }
+    userTax: {
+      ...userTaxSeparate,
+      assessedIncomeTax: userAssessed,
+      zuschlagsteuerBaseIncomeTax: userZuschlagsteuerBase,
+      soli: userSoli,
+      kirchensteuer: userKist
+    },
+    spouseTax: {
+      ...spouseTaxSeparate,
+      assessedIncomeTax: spouseAssessed,
+      zuschlagsteuerBaseIncomeTax: spouseZuschlagsteuerBase,
+      soli: spouseSoli,
+      kirchensteuer: spouseKist
+    }
   };
 }
 
@@ -549,8 +766,8 @@ export function computeYear(input: ComputeYearInput): YearComputation {
   if (veranlagungsart === 'joint') {
     const stayJoint = computeJointTax(profileUser, profileSpouse, incomeUser, incomeSpouse, stayUser, staySpouse, childrenJoint);
     const newJobJoint = computeJointTax(profileUser, profileSpouse, incomeUser, incomeSpouse, newJobUser, newJobSpouse, childrenJoint);
-    const stayDist = distributeJointToPersons(stayUserTaxSeparate, staySpouseTaxSeparate, stayJoint, profileUser, profileSpouse);
-    const newJobDist = distributeJointToPersons(newJobUserTaxSeparate, newJobSpouseTaxSeparate, newJobJoint, profileUser, profileSpouse);
+    const stayDist = distributeJointToPersons(stayUserTaxSeparate, staySpouseTaxSeparate, stayJoint, profileUser);
+    const newJobDist = distributeJointToPersons(newJobUserTaxSeparate, newJobSpouseTaxSeparate, newJobJoint, profileUser);
     return {
       year,
       mode: 'joint',

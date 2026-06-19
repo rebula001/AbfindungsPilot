@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { computeYear } from '../calculation/engine';
 import type { ScenarioOverride, Veranlagungsart } from '../calculation/types';
@@ -10,7 +10,7 @@ import {
   deriveTaxYears,
   deriveNewJobStartOptions,
   deriveMonthlyGrossOptions,
-  deriveSeveranceDateOptions,
+  deriveSeveranceDateOptions
 } from '../calculation/inputAdapter';
 import { useUserInput } from './useUserInput';
 
@@ -18,7 +18,7 @@ export type { Veranlagungsart } from '../calculation/types';
 
 const STAY_UNEMPLOYED_BASE: Omit<ScenarioOverride, 'severancePaymentDate'> = {
   newJobStartDate: null,
-  monthlyGrossNewJob: 0,
+  monthlyGrossNewJob: 0
 };
 
 const NEUTRAL_DATE = new Date();
@@ -29,9 +29,7 @@ export function useCalculation() {
 
   const hasData = computed(() => committedInput.value !== null);
 
-  const isSingleMode = computed(
-    () => committedInput.value ? !committedInput.value.withSpouse : false,
-  );
+  const isSingleMode = computed(() => (committedInput.value ? !committedInput.value.withSpouse : false));
 
   const calcInputs = computed(() => {
     const s = committedInput.value;
@@ -52,7 +50,7 @@ export function useCalculation() {
       severanceDateOptions,
       initialNewJobStart: s.newJobStartDate ? new Date(s.newJobStartDate) : newJobStartOptions[0],
       initialMonthlyGross: s.newJobMonthlySalary || monthlyGrossOptions[0],
-      initialSeveranceDate: severanceDateOptions[1] ?? severanceDateOptions[0],
+      initialSeveranceDate: severanceDateOptions[1] ?? severanceDateOptions[0]
     };
   });
 
@@ -66,7 +64,7 @@ export function useCalculation() {
     (single) => {
       if (single && veranlagungsart.value !== 'separate') veranlagungsart.value = 'separate';
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   watch(
@@ -77,18 +75,18 @@ export function useCalculation() {
       severancePaymentDate.value = inp.initialSeveranceDate;
       newJobStartDate.value = inp.initialNewJobStart;
       monthlyGrossNewJob.value = inp.initialMonthlyGross;
-    },
+    }
   );
 
   const scenarioStayUnemployed = computed<ScenarioOverride>(() => ({
     ...STAY_UNEMPLOYED_BASE,
-    severancePaymentDate: severancePaymentDate.value,
+    severancePaymentDate: severancePaymentDate.value
   }));
 
   const scenarioNewJob = computed<ScenarioOverride>(() => ({
     newJobStartDate: newJobStartDate.value,
     monthlyGrossNewJob: monthlyGrossNewJob.value,
-    severancePaymentDate: severancePaymentDate.value,
+    severancePaymentDate: severancePaymentDate.value
   }));
 
   const years = computed(() => {
@@ -104,8 +102,8 @@ export function useCalculation() {
         scenarioStayUnemployed: scenarioStayUnemployed.value,
         scenarioNewJob: scenarioNewJob.value,
         year: y,
-        veranlagungsart: veranlagungsart.value,
-      }),
+        veranlagungsart: veranlagungsart.value
+      })
     );
   });
 
@@ -126,6 +124,6 @@ export function useCalculation() {
     years,
     newJobStartOptions,
     monthlyGrossOptions,
-    severanceDateOptions,
+    severanceDateOptions
   };
 }

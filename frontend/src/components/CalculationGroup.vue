@@ -161,9 +161,7 @@ function valueCellClass(hasPopover: boolean): string {
 
     <!-- 收入区（可选） -->
     <div v-if="group.income && group.income.length > 0 && incomeLabelKey" class="flex flex-col gap-2">
-      <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-1">
-        + {{ t(incomeLabelKey) }}
-      </div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-1">+ {{ t(incomeLabelKey) }}</div>
       <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-3 items-stretch">
         <template v-for="step in group.income" :key="step.label">
           <div class="rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 p-3">
@@ -251,10 +249,7 @@ function valueCellClass(hasPopover: boolean): string {
               <div :class="['flex flex-col gap-0.5', valueCellClass(!!step.popover)]" @click="openPopover($event, step, 'liegen', 'user')">
                 <div class="font-mono inline-flex items-baseline gap-1.5">
                   <span>{{ formatEuroSigned(step.liegen.user, step.isDeduction) }}</span>
-                  <span
-                    v-if="step.cellMeta?.liegen.user?.suffix"
-                    class="text-xs text-amber-700 dark:text-amber-300 font-semibold"
-                  >
+                  <span v-if="step.cellMeta?.liegen.user?.suffix" class="text-xs text-amber-700 dark:text-amber-300 font-semibold">
                     {{ step.cellMeta.liegen.user.suffix }}
                   </span>
                   <i v-if="step.popover" class="pi pi-info-circle text-amber-600 dark:text-amber-400 text-xs self-center"></i>
@@ -271,10 +266,7 @@ function valueCellClass(hasPopover: boolean): string {
               >
                 <div class="font-mono inline-flex items-baseline gap-1.5">
                   <span>{{ formatEuroSigned(step.liegen.spouse, step.isDeduction) }}</span>
-                  <span
-                    v-if="step.cellMeta?.liegen.spouse?.suffix"
-                    class="text-xs text-amber-700 dark:text-amber-300 font-semibold"
-                  >
+                  <span v-if="step.cellMeta?.liegen.spouse?.suffix" class="text-xs text-amber-700 dark:text-amber-300 font-semibold">
                     {{ step.cellMeta.liegen.spouse.suffix }}
                   </span>
                   <i v-if="step.popover" class="pi pi-info-circle text-amber-600 dark:text-amber-400 text-xs self-center"></i>
@@ -288,9 +280,7 @@ function valueCellClass(hasPopover: boolean): string {
 
           <!-- 中央菱形 marker：旋转外框 + 反向旋转内容，区别于 income/deductions 的圆形 marker -->
           <div class="flex flex-col items-center justify-center gap-1 min-w-40 max-w-56">
-            <div
-              class="w-9 h-9 shrink-0 flex items-center justify-center bg-amber-500 text-white shadow-sm rotate-45 rounded-sm"
-            >
+            <div class="w-9 h-9 shrink-0 flex items-center justify-center bg-amber-500 text-white shadow-sm rotate-45 rounded-sm">
               <span class="-rotate-45 font-mono font-semibold text-xs leading-none">{{ step.label }}</span>
             </div>
             <div class="text-xs text-center text-surface-700 dark:text-surface-300 font-medium">
@@ -309,10 +299,7 @@ function valueCellClass(hasPopover: boolean): string {
               <div :class="['flex flex-col gap-0.5', valueCellClass(!!step.popover)]" @click="openPopover($event, step, 'neue', 'user')">
                 <div class="font-mono inline-flex items-baseline gap-1.5">
                   <span>{{ formatEuroSigned(step.neue.user, step.isDeduction) }}</span>
-                  <span
-                    v-if="step.cellMeta?.neue.user?.suffix"
-                    class="text-xs text-amber-700 dark:text-amber-300 font-semibold"
-                  >
+                  <span v-if="step.cellMeta?.neue.user?.suffix" class="text-xs text-amber-700 dark:text-amber-300 font-semibold">
                     {{ step.cellMeta.neue.user.suffix }}
                   </span>
                   <i v-if="step.popover" class="pi pi-info-circle text-amber-600 dark:text-amber-400 text-xs self-center"></i>
@@ -329,10 +316,7 @@ function valueCellClass(hasPopover: boolean): string {
               >
                 <div class="font-mono inline-flex items-baseline gap-1.5">
                   <span>{{ formatEuroSigned(step.neue.spouse, step.isDeduction) }}</span>
-                  <span
-                    v-if="step.cellMeta?.neue.spouse?.suffix"
-                    class="text-xs text-amber-700 dark:text-amber-300 font-semibold"
-                  >
+                  <span v-if="step.cellMeta?.neue.spouse?.suffix" class="text-xs text-amber-700 dark:text-amber-300 font-semibold">
                     {{ step.cellMeta.neue.spouse.suffix }}
                   </span>
                   <i v-if="step.popover" class="pi pi-info-circle text-amber-600 dark:text-amber-400 text-xs self-center"></i>
@@ -349,9 +333,7 @@ function valueCellClass(hasPopover: boolean): string {
 
     <!-- 抽扣区（位于 alternatives 之后，以保证步骤编号自然递增：2.1-2.5 + 2.6 等） -->
     <div v-if="group.deductions.length > 0 && deductionLabelKey" class="flex flex-col gap-2">
-      <div class="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400 px-1">
-        - {{ t(deductionLabelKey) }}
-      </div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400 px-1">- {{ t(deductionLabelKey) }}</div>
       <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-3 items-stretch">
         <template v-for="step in group.deductions" :key="step.label">
           <div class="rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 p-3">
@@ -377,7 +359,9 @@ function valueCellClass(hasPopover: boolean): string {
           </div>
 
           <div class="flex flex-col items-center justify-center gap-1 min-w-40 max-w-56">
-            <div class="min-w-9 h-9 px-2 rounded-full flex items-center justify-center font-mono font-semibold text-sm shrink-0 bg-rose-500 text-white">
+            <div
+              class="min-w-9 h-9 px-2 rounded-full flex items-center justify-center font-mono font-semibold text-sm shrink-0 bg-rose-500 text-white"
+            >
               {{ step.label }}
             </div>
             <div class="text-xs text-center text-surface-700 dark:text-surface-300 font-medium">
@@ -519,7 +503,9 @@ function valueCellClass(hasPopover: boolean): string {
     <Popover ref="popoverRef">
       <div v-if="popoverStep" class="flex flex-col gap-3 p-1 min-w-80 max-w-xl">
         <div class="flex items-baseline gap-2 border-b border-surface-200 dark:border-surface-700 pb-2">
-          <span class="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-full bg-primary-500 text-white font-mono font-semibold text-xs">
+          <span
+            class="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-full bg-primary-500 text-white font-mono font-semibold text-xs"
+          >
             {{ popoverStep.label }}
           </span>
           <div class="flex flex-col">
@@ -537,14 +523,16 @@ function valueCellClass(hasPopover: boolean): string {
             <div class="text-[11px] uppercase tracking-wide text-surface-500 mb-1">Formel</div>
             <pre
               class="text-xs font-mono whitespace-pre-wrap bg-surface-50 dark:bg-surface-900 p-2 rounded border border-surface-200 dark:border-surface-700"
-            >{{ popoverStep.popover.formula }}</pre>
+              >{{ popoverStep.popover.formula }}</pre
+            >
           </div>
 
           <div>
             <div class="text-[11px] uppercase tracking-wide text-surface-500 mb-1">Berechnung mit aktuellen Werten</div>
             <pre
               class="text-xs font-mono whitespace-pre-wrap bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded border border-emerald-200 dark:border-emerald-800"
-            >{{ popoverStep.popover.details[popoverScenario][popoverCell].computation }}</pre>
+              >{{ popoverStep.popover.details[popoverScenario][popoverCell].computation }}</pre
+            >
           </div>
         </div>
       </div>

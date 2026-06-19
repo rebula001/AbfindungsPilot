@@ -1,11 +1,7 @@
 import { ref } from 'vue';
 
 export type InsuranceKind = 'statutoryMandatory' | 'private' | 'voluntaryStatutory';
-export type SocialInsuranceKind =
-  | 'notMandatory'
-  | 'statutoryMandatory'
-  | 'employerOnly'
-  | 'employeeOnly';
+export type SocialInsuranceKind = 'notMandatory' | 'statutoryMandatory' | 'employerOnly' | 'employeeOnly';
 
 export interface UserInputSnapshot {
   taxClass: string;

@@ -30,32 +30,19 @@ const activeWorkspacePanel = ref<WorkspaceKey>('calculation');
 
 const workspaceGridStyle = computed(() => {
   const inputCols = inputPanelCollapsed.value ? '0 32px' : '480px 32px';
-  const workspaceCols =
-    activeWorkspacePanel.value === 'calculation'
-      ? 'minmax(0, 1fr) 32px 0'
-      : '0 32px minmax(0, 1fr)';
+  const workspaceCols = activeWorkspacePanel.value === 'calculation' ? 'minmax(0, 1fr) 32px 0' : '0 32px minmax(0, 1fr)';
 
   return {
-    gridTemplateColumns: `${inputCols} ${workspaceCols}`,
+    gridTemplateColumns: `${inputCols} ${workspaceCols}`
   };
 });
 
-const inputToggleIcon = computed(() =>
-  inputPanelCollapsed.value ? 'pi pi-angle-double-right' : 'pi pi-angle-double-left',
-);
-const inputToggleLabel = computed(() =>
-  inputPanelCollapsed.value ? t('layout.showInputPanel') : t('layout.hideInputPanel'),
-);
+const inputToggleIcon = computed(() => (inputPanelCollapsed.value ? 'pi pi-angle-double-right' : 'pi pi-angle-double-left'));
+const inputToggleLabel = computed(() => (inputPanelCollapsed.value ? t('layout.showInputPanel') : t('layout.hideInputPanel')));
 
-const workspaceToggleIcon = computed(() =>
-  activeWorkspacePanel.value === 'calculation'
-    ? 'pi pi-angle-double-left'
-    : 'pi pi-angle-double-right',
-);
+const workspaceToggleIcon = computed(() => (activeWorkspacePanel.value === 'calculation' ? 'pi pi-angle-double-left' : 'pi pi-angle-double-right'));
 const workspaceToggleLabel = computed(() =>
-  activeWorkspacePanel.value === 'calculation'
-    ? t('layout.showChartPanel')
-    : t('layout.showCalculationPanel'),
+  activeWorkspacePanel.value === 'calculation' ? t('layout.showChartPanel') : t('layout.showCalculationPanel')
 );
 
 function toggleInputPanel() {
@@ -63,14 +50,13 @@ function toggleInputPanel() {
 }
 
 function toggleWorkspacePanel() {
-  activeWorkspacePanel.value =
-    activeWorkspacePanel.value === 'calculation' ? 'chart' : 'calculation';
+  activeWorkspacePanel.value = activeWorkspacePanel.value === 'calculation' ? 'chart' : 'calculation';
 }
 
 const menuOptions = computed(() => [
   { label: t('nav.input'), value: 'input' as MenuKey, icon: 'pi pi-pencil' },
   { label: t('nav.calculation'), value: 'calculation' as MenuKey, icon: 'pi pi-calculator' },
-  { label: t('nav.chart'), value: 'chart' as MenuKey, icon: 'pi pi-chart-bar' },
+  { label: t('nav.chart'), value: 'chart' as MenuKey, icon: 'pi pi-chart-bar' }
 ]);
 
 const menuModel = computed<MenuKey[]>({
@@ -87,15 +73,12 @@ const menuModel = computed<MenuKey[]>({
   set: (next) => {
     inputPanelCollapsed.value = !next.includes('input');
 
-    const newWorkspace = next.find(
-      (value): value is WorkspaceKey =>
-        value !== 'input' && value !== activeWorkspacePanel.value,
-    );
+    const newWorkspace = next.find((value): value is WorkspaceKey => value !== 'input' && value !== activeWorkspacePanel.value);
 
     if (newWorkspace) {
       activeWorkspacePanel.value = newWorkspace;
     }
-  },
+  }
 });
 
 function onMenuOptionClick(value: MenuKey, event: MouseEvent) {
@@ -107,28 +90,25 @@ function onMenuOptionClick(value: MenuKey, event: MouseEvent) {
 
 const activeContentStyle = {
   background: 'var(--p-primary-color)',
-  color: 'var(--p-primary-contrast-color, #fff)',
+  color: 'var(--p-primary-contrast-color, #fff)'
 };
 
 const activeContrastTextStyle = {
-  color: 'var(--p-primary-contrast-color, #fff)',
+  color: 'var(--p-primary-contrast-color, #fff)'
 };
 
 const menuSelectButtonPt = {
   pcToggleButton: {
-    root: ({ context }: { context: { active: boolean } }) => ({
-      style: context.active ? activeContentStyle : undefined,
-    }),
     content: ({ context }: { context: { active: boolean } }) => ({
-      style: context.active ? activeContrastTextStyle : undefined,
+      style: context.active ? activeContentStyle : undefined
     }),
     label: ({ context }: { context: { active: boolean } }) => ({
-      style: context.active ? activeContrastTextStyle : undefined,
+      style: context.active ? activeContrastTextStyle : undefined
     }),
     icon: ({ context }: { context: { active: boolean } }) => ({
-      style: context.active ? activeContrastTextStyle : undefined,
-    }),
-  },
+      style: context.active ? activeContrastTextStyle : undefined
+    })
+  }
 };
 
 function setLanguage(language: Language) {
@@ -209,9 +189,7 @@ function setLanguage(language: Language) {
           :title="inputToggleLabel"
           @click="toggleInputPanel"
         >
-          <span
-            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-xs font-medium tracking-widest"
-          >
+          <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-xs font-medium tracking-widest">
             {{ inputToggleLabel }}
           </span>
           <i :class="inputToggleIcon" class="absolute bottom-3" aria-hidden="true" />
@@ -219,10 +197,7 @@ function setLanguage(language: Language) {
 
         <div
           class="relative min-w-0 bg-surface-0 px-6 py-5 dark:bg-surface-950"
-          :class="[
-            hasData ? 'overflow-auto' : 'overflow-hidden',
-            { 'pointer-events-none invisible': activeWorkspacePanel !== 'calculation' },
-          ]"
+          :class="[hasData ? 'overflow-auto' : 'overflow-hidden', { 'pointer-events-none invisible': activeWorkspacePanel !== 'calculation' }]"
           :inert="activeWorkspacePanel !== 'calculation'"
         >
           <CalculationView />
@@ -236,9 +211,7 @@ function setLanguage(language: Language) {
           :title="workspaceToggleLabel"
           @click="toggleWorkspacePanel"
         >
-          <span
-            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-xs font-medium tracking-widest"
-          >
+          <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-xs font-medium tracking-widest">
             {{ workspaceToggleLabel }}
           </span>
           <i :class="workspaceToggleIcon" class="absolute bottom-3" aria-hidden="true" />
@@ -246,10 +219,7 @@ function setLanguage(language: Language) {
 
         <div
           class="relative min-w-0 bg-surface-0 px-6 py-5 dark:bg-surface-950"
-          :class="[
-            hasData ? 'overflow-auto' : 'overflow-hidden',
-            { 'pointer-events-none invisible': activeWorkspacePanel !== 'chart' },
-          ]"
+          :class="[hasData ? 'overflow-auto' : 'overflow-hidden', { 'pointer-events-none invisible': activeWorkspacePanel !== 'chart' }]"
           :inert="activeWorkspacePanel !== 'chart'"
         >
           <ChartView />

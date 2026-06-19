@@ -8,28 +8,20 @@ import { useScenarioChartData } from '../composables/useScenarioChartData';
 const { t } = useI18n();
 
 // EmptyStateOverlay wird auf Panel-Ebene in App.vue gerendert (gilt fuer Berechnung + Diagramm einheitlich) - hier bewusst nicht erneut.
-const {
-  hasData,
-  isSingleMode,
-  scenarioRows,
-  scenarioRowsSplit,
-  liegenNettoJoint,
-  liegenNettoSplit,
-  payDateFolgejahr,
-  periodEnd,
-} = useScenarioChartData();
+const { hasData, isSingleMode, scenarioRows, scenarioRowsSplit, liegenNettoJoint, liegenNettoSplit, payDateFolgejahr, periodEnd } =
+  useScenarioChartData();
 
 const euroFmt = new Intl.NumberFormat('de-DE', {
   style: 'currency',
   currency: 'EUR',
   minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 0
 });
 
 const dateFmt = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
   month: '2-digit',
-  year: 'numeric',
+  year: 'numeric'
 });
 
 const REFERENCE_COLOR = 'rgb(107, 114, 128)';
@@ -40,8 +32,8 @@ const referenceLineJoint = computed(() =>
     : {
         value: liegenNettoJoint.value,
         label: t('chart.legend.referenceLabel'),
-        color: REFERENCE_COLOR,
-      },
+        color: REFERENCE_COLOR
+      }
 );
 
 const referenceLineSplit = computed(() =>
@@ -50,8 +42,8 @@ const referenceLineSplit = computed(() =>
     : {
         value: liegenNettoSplit.value,
         label: t('chart.legend.referenceLabel'),
-        color: REFERENCE_COLOR,
-      },
+        color: REFERENCE_COLOR
+      }
 );
 
 const PER_MONTH_LOW = 2500;
@@ -75,11 +67,7 @@ type BestVerdict = {
   text: string;
 };
 
-function buildBestPerMonth(
-  rows: typeof scenarioRows.value,
-  liegen: number | null,
-  veranlagungLabel: string,
-): BestVerdict | null {
+function buildBestPerMonth(rows: typeof scenarioRows.value, liegen: number | null, veranlagungLabel: string): BestVerdict | null {
   if (rows.length === 0 || liegen === null || !periodEnd.value) return null;
 
   let bestPerMonth = -Infinity;
@@ -114,26 +102,18 @@ function buildBestPerMonth(
     months: bestMonths,
     delta: euroFmt.format(Math.round(bestDelta)),
     netto: euroFmt.format(Math.round(bestRow.netto)),
-    verdict: t(`chart.summary.perMonthVerdict.${type}`),
+    verdict: t(`chart.summary.perMonthVerdict.${type}`)
   };
 
   return {
     type,
-    text: t(isSingleMode.value ? 'chart.summary.bestPerMonthSingle' : 'chart.summary.bestPerMonth', params),
+    text: t(isSingleMode.value ? 'chart.summary.bestPerMonthSingle' : 'chart.summary.bestPerMonth', params)
   };
 }
 
-const verdictJoint = computed(() =>
-  buildBestPerMonth(scenarioRows.value, liegenNettoJoint.value, t('chart.summary.veranlagungJoint')),
-);
+const verdictJoint = computed(() => buildBestPerMonth(scenarioRows.value, liegenNettoJoint.value, t('chart.summary.veranlagungJoint')));
 
-const verdictSplit = computed(() =>
-  buildBestPerMonth(
-    scenarioRowsSplit.value,
-    liegenNettoSplit.value,
-    t('chart.summary.veranlagungSplit'),
-  ),
-);
+const verdictSplit = computed(() => buildBestPerMonth(scenarioRowsSplit.value, liegenNettoSplit.value, t('chart.summary.veranlagungSplit')));
 
 const referenceIntro = computed(() => {
   if (liegenNettoJoint.value === null || liegenNettoSplit.value === null || payDateFolgejahr.value === null) {
@@ -143,14 +123,14 @@ const referenceIntro = computed(() => {
   if (isSingleMode.value) {
     return t('chart.summary.referenceIntroSingle', {
       value: euroFmt.format(Math.round(liegenNettoJoint.value)),
-      payDateFolgejahr: dateFmt.format(payDateFolgejahr.value),
+      payDateFolgejahr: dateFmt.format(payDateFolgejahr.value)
     });
   }
 
   return t('chart.summary.referenceIntro', {
     jointValue: euroFmt.format(Math.round(liegenNettoJoint.value)),
     splitValue: euroFmt.format(Math.round(liegenNettoSplit.value)),
-    payDateFolgejahr: dateFmt.format(payDateFolgejahr.value),
+    payDateFolgejahr: dateFmt.format(payDateFolgejahr.value)
   });
 });
 
@@ -190,10 +170,7 @@ function verdictBoxClass(type: PerMonthVerdictType): string {
         <p class="font-medium" v-html="verdictJoint.text" />
       </div>
 
-      <div
-        v-if="!isSingleMode && verdictSplit"
-        :class="['rounded-md border p-4', verdictBoxClass(verdictSplit.type)]"
-      >
+      <div v-if="!isSingleMode && verdictSplit" :class="['rounded-md border p-4', verdictBoxClass(verdictSplit.type)]">
         <!-- eslint-disable-next-line vue/no-v-html -->
         <p class="font-medium" v-html="verdictSplit.text" />
       </div>

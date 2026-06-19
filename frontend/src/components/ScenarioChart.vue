@@ -20,14 +20,14 @@ const props = defineProps<{
 const dateFormatter = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
   month: '2-digit',
-  year: 'numeric',
+  year: 'numeric'
 });
 
 const euroFormatter = new Intl.NumberFormat('de-DE', {
   style: 'currency',
   currency: 'EUR',
   minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 0
 });
 
 const PER_MONTH_LOW = 2500;
@@ -44,7 +44,7 @@ function formatPerMonthLine(diff: number, months: number): string {
   const perMonth = diff / months;
   return t('chart.tooltip.perMonth', {
     amount: euroFormatter.format(perMonth),
-    verdict: t(perMonthVerdictKey(perMonth)),
+    verdict: t(perMonthVerdictKey(perMonth))
   });
 }
 
@@ -58,9 +58,7 @@ const chartData = computed(() => {
     groups.get(key)!.rows.push(r);
   }
 
-  const startDates = [...new Set(props.rows.map((r) => r.newJobStartDate.getTime()))]
-    .sort((a, b) => a - b)
-    .map((t) => new Date(t));
+  const startDates = [...new Set(props.rows.map((r) => r.newJobStartDate.getTime()))].sort((a, b) => a - b).map((t) => new Date(t));
 
   const SALARY_PALETTE = [
     'rgb(255, 0, 0)',
@@ -69,13 +67,11 @@ const chartData = computed(() => {
     'rgb(0, 180, 0)',
     'rgb(0, 200, 200)',
     'rgb(0, 90, 255)',
-    'rgb(150, 0, 200)',
+    'rgb(150, 0, 200)'
   ];
 
   const uniqueGrosses = [...new Set(props.rows.map((r) => r.monthlyGrossNewJob))].sort((a, b) => a - b);
-  const grossColors = new Map<number, string>(
-    uniqueGrosses.map((g, i) => [g, SALARY_PALETTE[i % SALARY_PALETTE.length]]),
-  );
+  const grossColors = new Map<number, string>(uniqueGrosses.map((g, i) => [g, SALARY_PALETTE[i % SALARY_PALETTE.length]]));
   const payDateDash = new Map<string, number[]>();
   const uniquePayDates = [...new Set(props.rows.map((r) => r.severancePaymentDate.toISOString()))].sort();
   uniquePayDates.forEach((iso, idx) => payDateDash.set(iso, idx === 0 ? [] : [6, 4]));
@@ -94,7 +90,7 @@ const chartData = computed(() => {
           tension: 0.3,
           fill: false,
           pointRadius: 3,
-          pointHoverRadius: 5,
+          pointHoverRadius: 5
         };
       }),
       ...(props.referenceLine
@@ -110,11 +106,11 @@ const chartData = computed(() => {
               fill: false,
               pointRadius: 0,
               pointHoverRadius: 0,
-              order: -1,
-            },
+              order: -1
+            }
           ]
-        : []),
-    ],
+        : [])
+    ]
   };
 });
 
@@ -123,7 +119,7 @@ const legendItems = computed(() =>
     const isDashed = Array.isArray(ds.borderDash) && ds.borderDash.length > 0;
     const color = (ds.borderColor as string) ?? 'rgb(100, 116, 139)';
     return { label: ds.label ?? '', color, isDashed, index };
-  }),
+  })
 );
 
 const datasetRows = computed<(ScenarioRow | null)[][]>(() => {
@@ -136,13 +132,9 @@ const datasetRows = computed<(ScenarioRow | null)[][]>(() => {
     groups.get(key)!.rows.push(r);
   }
 
-  const startDates = [...new Set(props.rows.map((r) => r.newJobStartDate.getTime()))]
-    .sort((a, b) => a - b)
-    .map((t) => new Date(t));
+  const startDates = [...new Set(props.rows.map((r) => r.newJobStartDate.getTime()))].sort((a, b) => a - b).map((t) => new Date(t));
 
-  const result = [...groups.values()].map((g) =>
-    startDates.map((sd) => g.rows.find((r) => r.newJobStartDate.getTime() === sd.getTime()) ?? null),
-  );
+  const result = [...groups.values()].map((g) => startDates.map((sd) => g.rows.find((r) => r.newJobStartDate.getTime() === sd.getTime()) ?? null));
   if (props.referenceLine) result.push(startDates.map(() => null));
   return result;
 });
@@ -184,9 +176,7 @@ const legendGroups = computed<LegendGroup[]>(() => {
 });
 
 const diffBetweenActivePair = computed(() => {
-  const visible = chartData.value.datasets
-    .map((ds, index) => ({ ds, index }))
-    .filter(({ index }) => !hiddenDatasets.value.has(index));
+  const visible = chartData.value.datasets.map((ds, index) => ({ ds, index })).filter(({ index }) => !hiddenDatasets.value.has(index));
   if (visible.length !== 2) return null;
 
   const peakOf = (ds: { label?: string; data: (number | null)[]; borderColor?: string; borderDash?: number[] }) => {
@@ -204,7 +194,7 @@ const diffBetweenActivePair = computed(() => {
           value: peak,
           dateLabel: chartData.value.labels[peakIdx],
           color: (ds.borderColor as string) ?? 'rgb(100, 116, 139)',
-          isDashed: Array.isArray(ds.borderDash) && ds.borderDash.length > 0,
+          isDashed: Array.isArray(ds.borderDash) && ds.borderDash.length > 0
         }
       : null;
   };
@@ -226,7 +216,7 @@ const BAR_PALETTE = [
   { fill: 'rgba(255, 99, 132, 0.45)', border: 'rgb(255, 99, 132)' },
   { fill: 'rgba(201, 203, 70, 0.45)', border: 'rgb(201, 203, 70)' },
   { fill: 'rgba(54, 162, 235, 0.45)', border: 'rgb(54, 162, 235)' },
-  { fill: 'rgba(255, 205, 86, 0.45)', border: 'rgb(255, 205, 86)' },
+  { fill: 'rgba(255, 205, 86, 0.45)', border: 'rgb(255, 205, 86)' }
 ];
 const REFERENCE_BAR = { fill: 'rgba(148, 163, 184, 0.35)', border: 'rgb(100, 116, 139)' };
 
@@ -265,7 +255,9 @@ const barChartData = computed(() => {
       borders.push(REFERENCE_BAR.border);
     } else if (meta.row) {
       const r = meta.row;
-      labels.push(`${euroFormatter.format(r.monthlyGrossNewJob)} · ${t('chart.legend.auszahlungPrefix')} ${dateFormatter.format(r.severancePaymentDate)}`);
+      labels.push(
+        `${euroFormatter.format(r.monthlyGrossNewJob)} · ${t('chart.legend.auszahlungPrefix')} ${dateFormatter.format(r.severancePaymentDate)}`
+      );
       data.push(r.netto);
       const palette = BAR_PALETTE[scenarioIdx % BAR_PALETTE.length];
       fills.push(palette.fill);
@@ -284,9 +276,9 @@ const barChartData = computed(() => {
         borderColor: borders,
         borderWidth: 2,
         borderRadius: 6,
-        borderSkipped: false,
-      },
-    ],
+        borderSkipped: false
+      }
+    ]
   };
 });
 
@@ -357,41 +349,38 @@ const barChartOptions = computed(() => ({
             borderColor: palette.border,
             backgroundColor: palette.fill,
             borderWidth: 2,
-            borderDash: [] as number[],
+            borderDash: [] as number[]
           };
-        },
-      },
+        }
+      }
     },
     scales: {
       x: {
         title: { display: false },
         ticks: { color: 'rgb(100, 116, 139)', autoSkip: false, maxRotation: 30, minRotation: 0 },
-        grid: { display: false },
+        grid: { display: false }
       },
       y: {
         title: { display: true, text: props.yAxis, color: 'rgb(100, 116, 139)' },
         ticks: {
           color: 'rgb(100, 116, 139)',
-          callback: (value: number | string) =>
-            euroFormatter.format(typeof value === 'number' ? value : Number(value)),
+          callback: (value: number | string) => euroFormatter.format(typeof value === 'number' ? value : Number(value))
         },
-        grid: { color: 'rgba(148, 163, 184, 0.2)' },
-      },
-    },
-  },
+        grid: { color: 'rgba(148, 163, 184, 0.2)' }
+      }
+    }
+  }
 }));
 
 function toggleDataset(index: number) {
   const inst = (
-    chartRef.value as unknown as
-      | {
-          chart?: {
-            isDatasetVisible(i: number): boolean;
-            setDatasetVisibility(i: number, v: boolean): void;
-            update(): void;
-          };
-        }
-      | null
+    chartRef.value as unknown as {
+      chart?: {
+        isDatasetVisible(i: number): boolean;
+        setDatasetVisibility(i: number, v: boolean): void;
+        update(): void;
+      };
+    } | null
   )?.chart;
 
   if (!inst) return;
@@ -442,10 +431,7 @@ const chartOptions = computed(() => ({
             if (!row) continue;
             const diff = row.netto - props.referenceLine.value;
             const months = monthsWorkedUntil(row.newJobStartDate, props.periodEnd);
-            lines.push(
-              t('chart.tooltip.diffVsLiegen', { amount: euroFormatter.format(diff) }),
-              t('chart.tooltip.extraMonths', { months }),
-            );
+            lines.push(t('chart.tooltip.diffVsLiegen', { amount: euroFormatter.format(diff) }), t('chart.tooltip.extraMonths', { months }));
             if (months > 0) lines.push(formatPerMonthLine(diff, months));
           }
           return lines;
@@ -465,35 +451,33 @@ const chartOptions = computed(() => ({
           return `${amount} | ${start} | ${t('chart.legend.auszahlungPrefix')} ${pay}`;
         },
         labelColor: (ctx: { dataset: { borderColor?: string; borderDash?: number[] } }) => {
-          const isDashed =
-            Array.isArray(ctx.dataset.borderDash) && ctx.dataset.borderDash.length > 0;
+          const isDashed = Array.isArray(ctx.dataset.borderDash) && ctx.dataset.borderDash.length > 0;
           const color = (ctx.dataset.borderColor as string) ?? 'rgb(100, 116, 139)';
           return {
             borderColor: color,
             backgroundColor: isDashed ? 'transparent' : color,
             borderWidth: 2,
-            borderDash: isDashed ? [4, 2] : [],
+            borderDash: isDashed ? [4, 2] : []
           };
-        },
-      },
-    },
+        }
+      }
+    }
   },
   scales: {
     x: {
       title: { display: true, text: props.xAxis, color: 'rgb(100, 116, 139)' },
       ticks: { color: 'rgb(100, 116, 139)' },
-      grid: { color: 'rgba(148, 163, 184, 0.2)' },
+      grid: { color: 'rgba(148, 163, 184, 0.2)' }
     },
     y: {
       title: { display: true, text: props.yAxis, color: 'rgb(100, 116, 139)' },
       ticks: {
         color: 'rgb(100, 116, 139)',
-        callback: (value: number | string) =>
-          euroFormatter.format(typeof value === 'number' ? value : Number(value)),
+        callback: (value: number | string) => euroFormatter.format(typeof value === 'number' ? value : Number(value))
       },
-      grid: { color: 'rgba(148, 163, 184, 0.2)' },
-    },
-  },
+      grid: { color: 'rgba(148, 163, 184, 0.2)' }
+    }
+  }
 }));
 </script>
 
@@ -520,7 +504,7 @@ const chartOptions = computed(() => ({
             position: 'relative',
             top: '-1px',
             backgroundColor: diffBetweenActivePair.hi.isDashed ? 'transparent' : diffBetweenActivePair.hi.color,
-            border: diffBetweenActivePair.hi.isDashed ? `2px dashed ${diffBetweenActivePair.hi.color}` : 'none',
+            border: diffBetweenActivePair.hi.isDashed ? `2px dashed ${diffBetweenActivePair.hi.color}` : 'none'
           }"
         />
         {{ diffBetweenActivePair.hi.label }}:
@@ -554,7 +538,7 @@ const chartOptions = computed(() => ({
               height: '10px',
               marginTop: '0px',
               backgroundColor: item.isDashed ? 'transparent' : item.color,
-              border: item.isDashed ? `2px dashed ${item.color}` : 'none',
+              border: item.isDashed ? `2px dashed ${item.color}` : 'none'
             }"
           />
           <span>{{ item.label }}</span>

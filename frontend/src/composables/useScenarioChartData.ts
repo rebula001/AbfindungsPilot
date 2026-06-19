@@ -1,12 +1,7 @@
 import { computed } from 'vue';
 
 import { computeYear } from '../calculation/engine';
-import type {
-  PersonYearResult,
-  PersonTaxResult,
-  ScenarioOverride,
-  Veranlagungsart,
-} from '../calculation/types';
+import type { PersonYearResult, PersonTaxResult, ScenarioOverride, Veranlagungsart } from '../calculation/types';
 import {
   inputToProfileUser,
   inputToProfileSpouse,
@@ -15,7 +10,7 @@ import {
   deriveTaxYears,
   deriveNewJobStartOptions,
   deriveMonthlyGrossOptions,
-  deriveSeveranceDateOptions,
+  deriveSeveranceDateOptions
 } from '../calculation/inputAdapter';
 import { useUserInput } from './useUserInput';
 
@@ -43,7 +38,7 @@ function personCashflow(p: PersonYearResult, t: PersonTaxResult) {
     kindergeld: t.childBenefitShare,
     sv: p.sv.kv + p.sv.pv + p.sv.rv + p.sv.alv,
     steuer: t.assessedIncomeTax + t.soli + t.kirchensteuer,
-    spenden: p.donationDeduction,
+    spenden: p.donationDeduction
   };
 }
 
@@ -65,7 +60,7 @@ export function useScenarioChartData() {
       newJobStartOptions: deriveNewJobStartOptions(s),
       monthlyGrossOptions: deriveMonthlyGrossOptions(s),
       severanceDateOptions: deriveSeveranceDateOptions(s),
-      isSingle: !s.withSpouse,
+      isSingle: !s.withSpouse
     };
   });
 
@@ -74,17 +69,17 @@ export function useScenarioChartData() {
     newJobStartDate: Date,
     severancePaymentDate: Date,
     monthlyGrossNewJob: number,
-    veranlagungsart: Veranlagungsart,
+    veranlagungsart: Veranlagungsart
   ): ScenarioRow {
     const scenarioStayUnemployed: ScenarioOverride = {
       newJobStartDate: null,
       monthlyGrossNewJob: 0,
-      severancePaymentDate,
+      severancePaymentDate
     };
     const scenarioNewJob: ScenarioOverride = {
       newJobStartDate,
       monthlyGrossNewJob,
-      severancePaymentDate,
+      severancePaymentDate
     };
 
     let bruttoLohn = 0;
@@ -105,7 +100,7 @@ export function useScenarioChartData() {
         scenarioStayUnemployed,
         scenarioNewJob,
         year,
-        veranlagungsart,
+        veranlagungsart
       });
 
       const u = personCashflow(yc.newJob.user, yc.newJob.userTax);
@@ -135,7 +130,7 @@ export function useScenarioChartData() {
       sozialausgaben,
       spenden,
       steuer,
-      netto,
+      netto
     };
   }
 
@@ -162,12 +157,12 @@ export function useScenarioChartData() {
     const scenarioStayUnemployed: ScenarioOverride = {
       newJobStartDate: null,
       monthlyGrossNewJob: 0,
-      severancePaymentDate: payDate,
+      severancePaymentDate: payDate
     };
     const scenarioNewJob: ScenarioOverride = {
       newJobStartDate: inp.newJobStartOptions[0] ?? payDate,
       monthlyGrossNewJob: inp.monthlyGrossOptions[0] ?? 0,
-      severancePaymentDate: payDate,
+      severancePaymentDate: payDate
     };
 
     let netto = 0;
@@ -180,7 +175,7 @@ export function useScenarioChartData() {
         scenarioStayUnemployed,
         scenarioNewJob,
         year,
-        veranlagungsart,
+        veranlagungsart
       });
 
       const u = personCashflow(yc.stayUnemployed.user, yc.stayUnemployed.userTax);
@@ -239,6 +234,6 @@ export function useScenarioChartData() {
     bestNeueJoint,
     bestNeueSplit,
     payDateFolgejahr,
-    periodEnd,
+    periodEnd
   };
 }

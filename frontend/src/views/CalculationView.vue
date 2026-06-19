@@ -19,7 +19,7 @@ import {
   VORSORGE_KV_KRANKENGELD_ABSCHLAG,
   SOLI_FREIGRENZE_SINGLE_2026,
   SOLI_RATE,
-  SOLI_MILDERUNGSZONE_RATE,
+  SOLI_MILDERUNGSZONE_RATE
 } from '../calculation/constants';
 
 const { t, tm } = useI18n();
@@ -33,7 +33,7 @@ const {
   years,
   newJobStartOptions: newJobStartOptionsRef,
   monthlyGrossOptions: monthlyGrossOptionsRef,
-  severanceDateOptions: severanceDateOptionsRef,
+  severanceDateOptions: severanceDateOptionsRef
 } = useCalculation();
 
 const taxYearParams = computed(() => {
@@ -43,14 +43,14 @@ const taxYearParams = computed(() => {
 
 const veranlagungsartOptions = computed(() => [
   { value: 'separate', label: t('calculation.veranlagungsart.separate') },
-  { value: 'joint', label: t('calculation.veranlagungsart.joint') },
+  { value: 'joint', label: t('calculation.veranlagungsart.joint') }
 ]);
 
 const euroFmt = new Intl.NumberFormat('de-DE', {
   style: 'currency',
   currency: 'EUR',
   minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 0
 });
 const dateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -62,9 +62,7 @@ function tList(key: string, params?: Record<string, string | number>): string {
   const raw = tm(key);
   if (Array.isArray(raw)) {
     return (raw as string[])
-      .map((line) =>
-        params ? line.replace(/\{(\w+)\}/g, (_m, k) => (params[k] === undefined ? `{${k}}` : String(params[k]))) : line,
-      )
+      .map((line) => (params ? line.replace(/\{(\w+)\}/g, (_m, k) => (params[k] === undefined ? `{${k}}` : String(params[k]))) : line))
       .join('\n');
   }
   return params ? t(key, params) : t(key);
@@ -74,23 +72,19 @@ const newJobStartProxy = computed<Date>({
   get: () => newJobStartDate.value,
   set: (d: Date) => {
     newJobStartDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
-  },
+  }
 });
 const minNewJobDate = computed(() => newJobStartOptionsRef.value[0]);
 const maxNewJobDate = computed(() => newJobStartOptionsRef.value[newJobStartOptionsRef.value.length - 1]);
 
-const monthlyGrossOptions = computed(() =>
-  monthlyGrossOptionsRef.value.map((v) => ({ value: v, label: euroFmt.format(v) })),
-);
+const monthlyGrossOptions = computed(() => monthlyGrossOptionsRef.value.map((v) => ({ value: v, label: euroFmt.format(v) })));
 
-const severanceOptions = computed(() =>
-  severanceDateOptionsRef.value.map((d) => ({ value: d.getTime(), label: dateFmt.format(d) })),
-);
+const severanceOptions = computed(() => severanceDateOptionsRef.value.map((d) => ({ value: d.getTime(), label: dateFmt.format(d) })));
 const severanceIndex = computed<number>({
   get: () => severancePaymentDate.value.getTime(),
   set: (v: number) => {
     severancePaymentDate.value = new Date(v);
-  },
+  }
 });
 
 interface ScenarioValues {
@@ -110,10 +104,7 @@ interface DisplayStep {
     formula: string;
     details: Record<'liegen' | 'neue', Record<'user' | 'spouse', { computation: string }>>;
   };
-  notes?: Record<
-    'liegen' | 'neue',
-    Record<'user' | 'spouse', { text: string; variant?: 'info' | 'success' | 'warning' } | undefined>
-  >;
+  notes?: Record<'liegen' | 'neue', Record<'user' | 'spouse', { text: string; variant?: 'info' | 'success' | 'warning' } | undefined>>;
   cellMeta?: Record<'liegen' | 'neue', Record<'user' | 'spouse', { suffix?: string; sub?: string } | undefined>>;
 }
 
@@ -128,11 +119,11 @@ interface StepGroup {
 
 function buildCellDetails<T extends { scenario: 'liegen' | 'neue'; cell: 'user' | 'spouse' }>(
   cells: T[],
-  builder: (c: T) => string,
+  builder: (c: T) => string
 ): Record<'liegen' | 'neue', Record<'user' | 'spouse', { computation: string }>> {
   const out = {
     liegen: { user: { computation: '' }, spouse: { computation: '' } },
-    neue: { user: { computation: '' }, spouse: { computation: '' } },
+    neue: { user: { computation: '' }, spouse: { computation: '' } }
   };
   for (const c of cells) out[c.scenario][c.cell] = { computation: builder(c) };
   return out;
@@ -141,20 +132,20 @@ function buildCellDetails<T extends { scenario: 'liegen' | 'neue'; cell: 'user' 
 function buildZvEGroup(yc: YearComputation): StepGroup {
   const pull = (sel: (r: PersonYearResult) => number) => ({
     liegen: { user: sel(yc.stayUnemployed.user), spouse: sel(yc.stayUnemployed.spouse) },
-    neue: { user: sel(yc.newJob.user), spouse: sel(yc.newJob.spouse) },
+    neue: { user: sel(yc.newJob.user), spouse: sel(yc.newJob.spouse) }
   });
 
   const personCells: Array<{ scenario: 'liegen' | 'neue'; cell: 'user' | 'spouse'; person: PersonYearResult }> = [
     { scenario: 'liegen', cell: 'user', person: yc.stayUnemployed.user },
     { scenario: 'liegen', cell: 'spouse', person: yc.stayUnemployed.spouse },
     { scenario: 'neue', cell: 'user', person: yc.newJob.user },
-    { scenario: 'neue', cell: 'spouse', person: yc.newJob.spouse },
+    { scenario: 'neue', cell: 'spouse', person: yc.newJob.spouse }
   ];
 
   function buildPersonDetails(builder: (p: PersonYearResult) => string) {
     const out = {
       liegen: { user: { computation: '' }, spouse: { computation: '' } },
-      neue: { user: { computation: '' }, spouse: { computation: '' } },
+      neue: { user: { computation: '' }, spouse: { computation: '' } }
     };
     for (const c of personCells) out[c.scenario][c.cell] = { computation: builder(c.person) };
     return out;
@@ -172,15 +163,15 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
         titleKey: 'calculation.steps.grossWages.title',
         legalBasisKey: 'calculation.steps.grossWages.legalBasis',
         ...pull((r) => r.grossWages),
-        isDeduction: false,
+        isDeduction: false
       },
       {
         label: '0.2',
         titleKey: 'calculation.steps.rentalIncomeNet.title',
         legalBasisKey: 'calculation.steps.rentalIncomeNet.legalBasis',
         ...pull((r) => r.rentalIncomeNet),
-        isDeduction: false,
-      },
+        isDeduction: false
+      }
     ],
     deductions: [
       {
@@ -188,7 +179,7 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
         titleKey: 'calculation.steps.incomeRelatedExpenses.title',
         legalBasisKey: 'calculation.steps.incomeRelatedExpenses.legalBasis',
         ...pull((r) => r.incomeRelatedExpenses),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '0.4',
@@ -206,18 +197,18 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
               kv: fmtE(p.sv.kv),
               kvDeduct: fmtE(kvAnteil),
               pv: fmtE(p.sv.pv),
-              total: fmtE(total),
+              total: fmtE(total)
             });
-          }),
-        },
+          })
+        }
       },
       {
         label: '0.5',
         titleKey: 'calculation.steps.spenden.title',
         legalBasisKey: 'calculation.steps.spenden.legalBasis',
         ...pull((r) => r.donationDeduction),
-        isDeduction: true,
-      },
+        isDeduction: true
+      }
     ],
     result: {
       label: '1',
@@ -225,15 +216,15 @@ function buildZvEGroup(yc: YearComputation): StepGroup {
       legalBasisKey: 'calculation.steps.zvE.legalBasis',
       ...pull((r) => r.zvEWithoutKFB),
       isDeduction: false,
-      highlight: true,
-    },
+      highlight: true
+    }
   };
 }
 
 function buildSozialabgabenGroup(yc: YearComputation): StepGroup {
   const pull = (sel: (r: PersonYearResult) => number) => ({
     liegen: { user: sel(yc.stayUnemployed.user), spouse: sel(yc.stayUnemployed.spouse) },
-    neue: { user: sel(yc.newJob.user), spouse: sel(yc.newJob.spouse) },
+    neue: { user: sel(yc.newJob.user), spouse: sel(yc.newJob.spouse) }
   });
 
   return {
@@ -245,29 +236,29 @@ function buildSozialabgabenGroup(yc: YearComputation): StepGroup {
         titleKey: 'calculation.steps.kv.title',
         legalBasisKey: 'calculation.steps.kv.legalBasis',
         ...pull((r) => r.sv.kv),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '1.2',
         titleKey: 'calculation.steps.pv.title',
         legalBasisKey: 'calculation.steps.pv.legalBasis',
         ...pull((r) => r.sv.pv),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '1.3',
         titleKey: 'calculation.steps.rv.title',
         legalBasisKey: 'calculation.steps.rv.legalBasis',
         ...pull((r) => r.sv.rv),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '1.4',
         titleKey: 'calculation.steps.alv.title',
         legalBasisKey: 'calculation.steps.alv.legalBasis',
         ...pull((r) => r.sv.alv),
-        isDeduction: true,
-      },
+        isDeduction: true
+      }
     ],
     result: {
       label: '2',
@@ -275,8 +266,8 @@ function buildSozialabgabenGroup(yc: YearComputation): StepGroup {
       legalBasisKey: 'calculation.steps.sozialabgabenGesamt.legalBasis',
       ...pull((r) => r.sv.kv + r.sv.pv + r.sv.rv + r.sv.alv),
       isDeduction: true,
-      highlight: true,
-    },
+      highlight: true
+    }
   };
 }
 
@@ -295,7 +286,7 @@ interface YearView {
 function buildEstGroup(yc: YearComputation): StepGroup {
   const pullTax = (sel: (t: PersonTaxResult) => number) => ({
     liegen: { user: sel(yc.stayUnemployed.userTax), spouse: sel(yc.stayUnemployed.spouseTax) },
-    neue: { user: sel(yc.newJob.userTax), spouse: sel(yc.newJob.spouseTax) },
+    neue: { user: sel(yc.newJob.userTax), spouse: sel(yc.newJob.spouseTax) }
   });
 
   const cells: Array<{
@@ -307,7 +298,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
     { scenario: 'liegen', cell: 'user', tax: yc.stayUnemployed.userTax, person: yc.stayUnemployed.user },
     { scenario: 'liegen', cell: 'spouse', tax: yc.stayUnemployed.spouseTax, person: yc.stayUnemployed.spouse },
     { scenario: 'neue', cell: 'user', tax: yc.newJob.userTax, person: yc.newJob.user },
-    { scenario: 'neue', cell: 'spouse', tax: yc.newJob.spouseTax, person: yc.newJob.spouse },
+    { scenario: 'neue', cell: 'spouse', tax: yc.newJob.spouseTax, person: yc.newJob.spouse }
   ];
 
   const buildDetails = (builder: (c: (typeof cells)[number]) => string) => buildCellDetails(cells, builder);
@@ -326,15 +317,15 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           sumPlain: fmtENoSym(zvEOrd + alg),
           ratePct: (satz * 100).toFixed(2),
           zvEOrdPlain: fmtENoSym(zvEOrd),
-          sockel: fmtE(estSockel),
-        }),
+          sockel: fmtE(estSockel)
+        })
       );
     } else {
       parts.push(
         tList('calculation.popover.fuenftel.progrVWithoutAlg', {
           zvEOrdPlain: fmtENoSym(zvEOrd),
-          sockel: fmtE(estSockel),
-        }),
+          sockel: fmtE(estSockel)
+        })
       );
     }
     if (abfindung > 0) {
@@ -348,8 +339,8 @@ function buildEstGroup(yc: YearComputation): StepGroup {
           estMitPlain: fmtENoSym(estMitFuenftel),
           sockelPlain: fmtENoSym(estSockel),
           zusatz: fmtE(zusatz),
-          total: fmtE(estSockel + zusatz),
-        }),
+          total: fmtE(estSockel + zusatz)
+        })
       );
     } else {
       parts.push(tList('calculation.popover.fuenftel.fuenftelWithoutAbf', { sockel: fmtE(estSockel) }));
@@ -372,12 +363,12 @@ function buildEstGroup(yc: YearComputation): StepGroup {
   const pullAbfindungTax = () => ({
     liegen: {
       user: abfindungTaxBreakdown(yc.stayUnemployed.userTax).zusatz,
-      spouse: abfindungTaxBreakdown(yc.stayUnemployed.spouseTax).zusatz,
+      spouse: abfindungTaxBreakdown(yc.stayUnemployed.spouseTax).zusatz
     },
     neue: {
       user: abfindungTaxBreakdown(yc.newJob.userTax).zusatz,
-      spouse: abfindungTaxBreakdown(yc.newJob.spouseTax).zusatz,
-    },
+      spouse: abfindungTaxBreakdown(yc.newJob.spouseTax).zusatz
+    }
   });
 
   const buildAbfindungMeta = () => {
@@ -387,12 +378,12 @@ function buildEstGroup(yc: YearComputation): StepGroup {
       const b = abfindungTaxBreakdown(tax);
       return {
         suffix: `(${pctFmt.format(b.rate)})`,
-        sub: `${euroFmt.format(Math.round(tax.severance - b.zusatz))} (${t('calculation.nettoSuffix')})`,
+        sub: `${euroFmt.format(Math.round(tax.severance - b.zusatz))} (${t('calculation.nettoSuffix')})`
       };
     };
     return {
       liegen: { user: cellMeta(yc.stayUnemployed.userTax), spouse: cellMeta(yc.stayUnemployed.spouseTax) },
-      neue: { user: cellMeta(yc.newJob.userTax), spouse: cellMeta(yc.newJob.spouseTax) },
+      neue: { user: cellMeta(yc.newJob.userTax), spouse: cellMeta(yc.newJob.spouseTax) }
     };
   };
 
@@ -401,7 +392,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
     if (est <= SOLI_FREIGRENZE_SINGLE_2026) {
       return tList('calculation.popover.soli.detailBelowFreigrenze', {
         est: fmtE(est),
-        freigrenze: fmtE(SOLI_FREIGRENZE_SINGLE_2026),
+        freigrenze: fmtE(SOLI_FREIGRENZE_SINGLE_2026)
       });
     }
     const cap = SOLI_RATE * est;
@@ -418,7 +409,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
       capPlain: fmtENoSym(cap),
       milderungPlain: fmtENoSym(milderung),
       soli: fmtE(Math.floor(Math.min(cap, milderung))),
-      chosen: capWins ? t('calculation.popover.soli.capWins') : t('calculation.popover.soli.milderungActive'),
+      chosen: capWins ? t('calculation.popover.soli.capWins') : t('calculation.popover.soli.milderungActive')
     });
   }
 
@@ -434,9 +425,9 @@ function buildEstGroup(yc: YearComputation): StepGroup {
         isDeduction: true,
         popover: {
           formula: tList('calculation.popover.soli.formula'),
-          details: buildDetails((c) => describeSoli(c.tax)),
-        },
-      },
+          details: buildDetails((c) => describeSoli(c.tax))
+        }
+      }
     ],
     alternatives: [
       {
@@ -447,8 +438,8 @@ function buildEstGroup(yc: YearComputation): StepGroup {
         isDeduction: true,
         popover: {
           formula: tList('calculation.popover.tariffIncomeTaxWithoutKFB.formula'),
-          details: buildDetails((c) => showFuenftelProgrV(c.tax.zvEWithoutKFB, c.tax.severance, c.tax.unemploymentBenefit)),
-        },
+          details: buildDetails((c) => showFuenftelProgrV(c.tax.zvEWithoutKFB, c.tax.severance, c.tax.unemploymentBenefit))
+        }
       },
       {
         label: '2.2',
@@ -459,15 +450,18 @@ function buildEstGroup(yc: YearComputation): StepGroup {
         popover: {
           formula: tList('calculation.popover.tariffIncomeTaxWithKFB.formula', {
             childCount: childrenForDisplay,
-            childWord: t(childrenForDisplay === 1 ? 'calculation.childUnit.one' : 'calculation.childUnit.many'),
+            childWord: t(childrenForDisplay === 1 ? 'calculation.childUnit.one' : 'calculation.childUnit.many')
           }),
-          details: buildDetails((c) =>
-            tList('calculation.popover.tariffIncomeTaxWithKFB.detail1Prefix', {
-              kfbHalf: fmtE(c.tax.kfbHalf),
-              zvEMinusKfb: fmtE(c.tax.zvEWithKFB),
-            }) + '\n' + showFuenftelProgrV(c.tax.zvEWithKFB, c.tax.severance, c.tax.unemploymentBenefit),
-          ),
-        },
+          details: buildDetails(
+            (c) =>
+              tList('calculation.popover.tariffIncomeTaxWithKFB.detail1Prefix', {
+                kfbHalf: fmtE(c.tax.kfbHalf),
+                zvEMinusKfb: fmtE(c.tax.zvEWithKFB)
+              }) +
+              '\n' +
+              showFuenftelProgrV(c.tax.zvEWithKFB, c.tax.severance, c.tax.unemploymentBenefit)
+          )
+        }
       },
       {
         label: '2.3',
@@ -481,10 +475,10 @@ function buildEstGroup(yc: YearComputation): StepGroup {
             tList('calculation.popover.kfbSavings.detail', {
               est21: fmtE(c.tax.tariffIncomeTaxWithoutKFB),
               est22: fmtE(c.tax.tariffIncomeTaxWithKFB),
-              savings: fmtE(c.tax.kfbSavings),
-            }),
-          ),
-        },
+              savings: fmtE(c.tax.kfbSavings)
+            })
+          )
+        }
       },
       {
         label: '2.4',
@@ -499,10 +493,10 @@ function buildEstGroup(yc: YearComputation): StepGroup {
               kgHalf: KINDERGELD_PER_MONTH_PER_CHILD_2026 / 2,
               childCount: childrenForDisplay,
               childWord: t(childrenForDisplay === 1 ? 'calculation.childUnit.one' : 'calculation.childUnit.many'),
-              result: fmtE(c.tax.childBenefitShare),
-            }),
-          ),
-        },
+              result: fmtE(c.tax.childBenefitShare)
+            })
+          )
+        }
       },
       {
         label: '2.5',
@@ -526,11 +520,11 @@ function buildEstGroup(yc: YearComputation): StepGroup {
               zusatz: fmtE(b.zusatz),
               zusatzPlain: fmtENoSym(b.zusatz),
               abfindungPlain: fmtENoSym(c.tax.severance),
-              ratePct: (b.rate * 100).toFixed(2),
+              ratePct: (b.rate * 100).toFixed(2)
             });
-          }),
-        },
-      },
+          })
+        }
+      }
     ],
     result: {
       label: '3',
@@ -554,7 +548,7 @@ function buildEstGroup(yc: YearComputation): StepGroup {
               kirchensteuer: fmtE(tax.kirchensteuer),
               total: fmtE(tax.assessedIncomeTax + tax.soli + tax.kirchensteuer),
               est21: fmtE(tax.tariffIncomeTaxWithoutKFB),
-              savings: fmtE(tax.tariffIncomeTaxWithoutKFB - tax.assessedIncomeTax),
+              savings: fmtE(tax.tariffIncomeTaxWithoutKFB - tax.assessedIncomeTax)
             });
           }
           return tList('calculation.popover.steuerGesamt.detailKindergeldWins', {
@@ -565,9 +559,9 @@ function buildEstGroup(yc: YearComputation): StepGroup {
             assessedIncomeTax: fmtE(tax.assessedIncomeTax),
             soli: fmtE(tax.soli),
             kirchensteuer: fmtE(tax.kirchensteuer),
-            total: fmtE(tax.assessedIncomeTax + tax.soli + tax.kirchensteuer),
+            total: fmtE(tax.assessedIncomeTax + tax.soli + tax.kirchensteuer)
           });
-        }),
+        })
       },
       notes: {
         liegen: {
@@ -575,51 +569,51 @@ function buildEstGroup(yc: YearComputation): StepGroup {
             text: yc.stayUnemployed.userTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
                   est22: fmtE(yc.stayUnemployed.userTax.tariffIncomeTaxWithKFB),
-                  kg: fmtE(yc.stayUnemployed.userTax.childBenefitShare),
+                  kg: fmtE(yc.stayUnemployed.userTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
-                  kg: fmtE(yc.stayUnemployed.userTax.childBenefitShare),
+                  kg: fmtE(yc.stayUnemployed.userTax.childBenefitShare)
                 }),
-            variant: yc.stayUnemployed.userTax.kfbPreferred ? 'success' : 'info',
+            variant: yc.stayUnemployed.userTax.kfbPreferred ? 'success' : 'info'
           },
           spouse: {
             text: yc.stayUnemployed.spouseTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
                   est22: fmtE(yc.stayUnemployed.spouseTax.tariffIncomeTaxWithKFB),
-                  kg: fmtE(yc.stayUnemployed.spouseTax.childBenefitShare),
+                  kg: fmtE(yc.stayUnemployed.spouseTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
-                  kg: fmtE(yc.stayUnemployed.spouseTax.childBenefitShare),
+                  kg: fmtE(yc.stayUnemployed.spouseTax.childBenefitShare)
                 }),
-            variant: yc.stayUnemployed.spouseTax.kfbPreferred ? 'success' : 'info',
-          },
+            variant: yc.stayUnemployed.spouseTax.kfbPreferred ? 'success' : 'info'
+          }
         },
         neue: {
           user: {
             text: yc.newJob.userTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
                   est22: fmtE(yc.newJob.userTax.tariffIncomeTaxWithKFB),
-                  kg: fmtE(yc.newJob.userTax.childBenefitShare),
+                  kg: fmtE(yc.newJob.userTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
-                  kg: fmtE(yc.newJob.userTax.childBenefitShare),
+                  kg: fmtE(yc.newJob.userTax.childBenefitShare)
                 }),
-            variant: yc.newJob.userTax.kfbPreferred ? 'success' : 'info',
+            variant: yc.newJob.userTax.kfbPreferred ? 'success' : 'info'
           },
           spouse: {
             text: yc.newJob.spouseTax.kfbPreferred
               ? t('calculation.popover.steuerGesamt.notes.kfbWinsBadge', {
                   est22: fmtE(yc.newJob.spouseTax.tariffIncomeTaxWithKFB),
-                  kg: fmtE(yc.newJob.spouseTax.childBenefitShare),
+                  kg: fmtE(yc.newJob.spouseTax.childBenefitShare)
                 })
               : t('calculation.popover.steuerGesamt.notes.kindergeldWinsBadge', {
-                  kg: fmtE(yc.newJob.spouseTax.childBenefitShare),
+                  kg: fmtE(yc.newJob.spouseTax.childBenefitShare)
                 }),
-            variant: yc.newJob.spouseTax.kfbPreferred ? 'success' : 'info',
-          },
-        },
-      },
-    },
+            variant: yc.newJob.spouseTax.kfbPreferred ? 'success' : 'info'
+          }
+        }
+      }
+    }
   };
 }
 
@@ -654,22 +648,20 @@ function buildNettoGroup(yc: YearComputation): StepGroup {
   const data = {
     liegen: {
       user: compute(yc.stayUnemployed.user, yc.stayUnemployed.userTax),
-      spouse: compute(yc.stayUnemployed.spouse, yc.stayUnemployed.spouseTax),
+      spouse: compute(yc.stayUnemployed.spouse, yc.stayUnemployed.spouseTax)
     },
     neue: {
       user: compute(yc.newJob.user, yc.newJob.userTax),
-      spouse: compute(yc.newJob.spouse, yc.newJob.spouseTax),
-    },
+      spouse: compute(yc.newJob.spouse, yc.newJob.spouseTax)
+    }
   };
 
   const pull = (sel: (n: PersonNetto) => number) => ({
     liegen: { user: sel(data.liegen.user), spouse: sel(data.liegen.spouse) },
-    neue: { user: sel(data.neue.user), spouse: sel(data.neue.spouse) },
+    neue: { user: sel(data.neue.user), spouse: sel(data.neue.spouse) }
   });
 
-  const cells = (['liegen', 'neue'] as const).flatMap((s) =>
-    (['user', 'spouse'] as const).map((c) => ({ scenario: s, cell: c, n: data[s][c] })),
-  );
+  const cells = (['liegen', 'neue'] as const).flatMap((s) => (['user', 'spouse'] as const).map((c) => ({ scenario: s, cell: c, n: data[s][c] })));
   function detailsFor(builder: (n: PersonNetto) => string) {
     return buildCellDetails(cells, (c) => builder(c.n));
   }
@@ -693,11 +685,11 @@ function buildNettoGroup(yc: YearComputation): StepGroup {
               alg: fmtE(n.alg),
               vuv: fmtE(n.vuv),
               kindergeld: fmtE(n.kindergeld),
-              sum: fmtE(n.brutto + n.abfindung + n.alg + n.vuv + n.kindergeld),
-            }),
-          ),
-        },
-      },
+              sum: fmtE(n.brutto + n.abfindung + n.alg + n.vuv + n.kindergeld)
+            })
+          )
+        }
+      }
     ],
     deductions: [
       {
@@ -705,22 +697,22 @@ function buildNettoGroup(yc: YearComputation): StepGroup {
         titleKey: 'calculation.steps.sozialabgabenAbfluss.title',
         legalBasisKey: 'calculation.steps.sozialabgabenAbfluss.legalBasis',
         ...pull((n) => n.sv),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '3.3',
         titleKey: 'calculation.steps.steuerGesamtAbfluss.title',
         legalBasisKey: 'calculation.steps.steuerGesamtAbfluss.legalBasis',
         ...pull((n) => n.steuer),
-        isDeduction: true,
+        isDeduction: true
       },
       {
         label: '3.4',
         titleKey: 'calculation.steps.spendenAbfluss.title',
         legalBasisKey: 'calculation.steps.spendenAbfluss.legalBasis',
         ...pull((n) => n.spenden),
-        isDeduction: true,
-      },
+        isDeduction: true
+      }
     ],
     result: {
       label: '4',
@@ -745,11 +737,11 @@ function buildNettoGroup(yc: YearComputation): StepGroup {
             sv: fmtE(n.sv),
             steuer: fmtE(n.steuer),
             spenden: fmtE(n.spenden),
-            netto: fmtE(n.netto),
+            netto: fmtE(n.netto)
           });
-        }),
-      },
-    },
+        })
+      }
+    }
   };
 }
 
@@ -763,8 +755,8 @@ const yearViews = computed<YearView[]>(() =>
     algLiegen: { user: yc.stayUnemployed.user.income.unemploymentBenefit, spouse: yc.stayUnemployed.spouse.income.unemploymentBenefit },
     algNeue: { user: yc.newJob.user.income.unemploymentBenefit, spouse: yc.newJob.spouse.income.unemploymentBenefit },
     severanceLiegen: { user: yc.stayUnemployed.user.income.severance, spouse: yc.stayUnemployed.spouse.income.severance },
-    severanceNeue: { user: yc.newJob.user.income.severance, spouse: yc.newJob.spouse.income.severance },
-  })),
+    severanceNeue: { user: yc.newJob.user.income.severance, spouse: yc.newJob.spouse.income.severance }
+  }))
 );
 
 interface ScenarioYearTotals {
@@ -789,7 +781,7 @@ interface SummaryView {
 }
 
 function aggregateScenario(
-  rows: Array<{ user: PersonYearResult; userTax: PersonTaxResult; spouse: PersonYearResult; spouseTax: PersonTaxResult; year: number }>,
+  rows: Array<{ user: PersonYearResult; userTax: PersonTaxResult; spouse: PersonYearResult; spouseTax: PersonTaxResult; year: number }>
 ): ScenarioTotals {
   const perYear = rows.map((r) => {
     const sumPerson = (p: PersonYearResult, t: PersonTaxResult) => ({
@@ -800,7 +792,7 @@ function aggregateScenario(
       kindergeld: t.childBenefitShare,
       sv: p.sv.kv + p.sv.pv + p.sv.rv + p.sv.alv,
       steuer: t.assessedIncomeTax + t.soli + t.kirchensteuer,
-      spenden: p.donationDeduction,
+      spenden: p.donationDeduction
     });
     const a = sumPerson(r.user, r.userTax);
     const b = sumPerson(r.spouse, r.spouseTax);
@@ -813,7 +805,7 @@ function aggregateScenario(
       sv: a.sv + b.sv,
       steuer: a.steuer + b.steuer,
       spenden: a.spenden + b.spenden,
-      netto: 0,
+      netto: 0
     };
     yearTotals.netto =
       yearTotals.brutto +
@@ -837,9 +829,9 @@ function aggregateScenario(
       sv: acc.sv + y.sv,
       steuer: acc.steuer + y.steuer,
       spenden: acc.spenden + y.spenden,
-      netto: acc.netto + y.netto,
+      netto: acc.netto + y.netto
     }),
-    zero,
+    zero
   );
   return { perYear, sum };
 }
@@ -909,7 +901,7 @@ const perMonthDetailText = computed<string | null>(() => {
     delta: euroFmt.format(Math.round(summary.value.diffNetto)),
     start: dateFmt.format(newJobStartDate.value),
     end: periodEnd.value ? dateFmt.format(periodEnd.value) : '',
-    verdict: t(`chart.summary.perMonthVerdict.${info.type}`),
+    verdict: t(`chart.summary.perMonthVerdict.${info.type}`)
   });
 });
 
@@ -1056,10 +1048,7 @@ const veranlagungLabel = computed(() => {
               {{ t('calculation.steps.arbeitslosengeld.note') }}
             </p>
 
-            <div
-              v-if="yv.severanceLiegen.user > 0 || yv.severanceNeue.user > 0"
-              class="grid grid-cols-[1fr_auto_1fr] gap-x-4 items-stretch"
-            >
+            <div v-if="yv.severanceLiegen.user > 0 || yv.severanceNeue.user > 0" class="grid grid-cols-[1fr_auto_1fr] gap-x-4 items-stretch">
               <div class="rounded-md border border-purple-300 bg-purple-50/60 p-3 dark:border-purple-700 dark:bg-purple-950/40">
                 <div class="mb-1 text-xs font-semibold text-purple-800 dark:text-purple-300">{{ t('calculation.abfindungBoxTitle') }}</div>
                 <div :class="['grid gap-x-3 text-sm', isSingleMode ? 'grid-cols-1' : 'grid-cols-2']">
@@ -1143,7 +1132,9 @@ const veranlagungLabel = computed(() => {
               <div class="flex min-w-12 items-center justify-center">
                 <i class="pi pi-arrow-right-arrow-left text-xl text-primary-500" aria-hidden="true"></i>
               </div>
-              <div class="flex flex-col gap-1 rounded-md border-2 border-primary-400 bg-primary-50/60 p-4 dark:border-primary-600 dark:bg-primary-950/40">
+              <div
+                class="flex flex-col gap-1 rounded-md border-2 border-primary-400 bg-primary-50/60 p-4 dark:border-primary-600 dark:bg-primary-950/40"
+              >
                 <div class="text-xs uppercase tracking-wide text-primary-700 dark:text-primary-300">{{ t('calculation.summary.scenarioNeue') }}</div>
                 <div class="text-2xl font-mono font-semibold text-primary-800 dark:text-primary-100">{{ formatEuro(summary.neue.sum.netto) }}</div>
                 <div class="text-[11px] text-primary-600 dark:text-primary-400">{{ t('calculation.summary.colSum', taxYearParams) }}</div>
@@ -1172,7 +1163,9 @@ const veranlagungLabel = computed(() => {
                     <tr>
                       <th class="p-2 text-left font-semibold">{{ t('calculation.summary.colYear') }}</th>
                       <th class="p-2 text-right font-semibold text-emerald-700 dark:text-emerald-400">+ {{ t('calculation.summary.colBrutto') }}</th>
-                      <th class="p-2 text-right font-semibold text-emerald-700 dark:text-emerald-400">+ {{ t('calculation.summary.colAbfindung') }}</th>
+                      <th class="p-2 text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                        + {{ t('calculation.summary.colAbfindung') }}
+                      </th>
                       <th class="p-2 text-right font-semibold text-emerald-700 dark:text-emerald-400">+ {{ t('calculation.summary.colAlg') }}</th>
                       <th class="p-2 text-right font-semibold text-rose-700 dark:text-rose-400">- {{ t('calculation.summary.colSv') }}</th>
                       <th class="p-2 text-right font-semibold text-rose-700 dark:text-rose-400">- {{ t('calculation.summary.colSteuer') }}</th>
@@ -1183,7 +1176,10 @@ const veranlagungLabel = computed(() => {
                   </thead>
                   <tbody>
                     <tr class="bg-surface-50/40 dark:bg-surface-950/40">
-                      <td colspan="7" class="px-2 py-1 font-sans text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-400">
+                      <td
+                        colspan="7"
+                        class="px-2 py-1 font-sans text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-400"
+                      >
                         {{ t('calculation.summary.scenarioLiegen') }}
                       </td>
                     </tr>
@@ -1207,7 +1203,10 @@ const veranlagungLabel = computed(() => {
                     </tr>
 
                     <tr class="bg-primary-50/40 dark:bg-primary-950/40">
-                      <td colspan="7" class="px-2 py-1 font-sans text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300">
+                      <td
+                        colspan="7"
+                        class="px-2 py-1 font-sans text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300"
+                      >
                         {{ t('calculation.summary.scenarioNeue') }}
                       </td>
                     </tr>
@@ -1244,7 +1243,7 @@ const veranlagungLabel = computed(() => {
                             ? 'text-emerald-700 dark:text-emerald-300'
                             : summary.diffNetto < 0
                               ? 'text-rose-700 dark:text-rose-300'
-                              : 'text-surface-700 dark:text-surface-300',
+                              : 'text-surface-700 dark:text-surface-300'
                         ]"
                       >
                         {{ summary.diffNetto >= 0 ? '+' : '-' }}{{ formatEuro(Math.abs(summary.diffNetto)) }}

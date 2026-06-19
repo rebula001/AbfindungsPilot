@@ -253,7 +253,7 @@ if (asJson) {
   if (localeReports.some((r) => r.unused.length > 0)) {
     console.log('提示：请在删除前肉眼确认：');
     console.log('  - 是否被完全动态计算的 key 引用（脚本无法静态分析）');
-    console.log("  - 是否是新功能的预留 key");
+    console.log('  - 是否是新功能的预留 key');
   }
 }
 

@@ -26,8 +26,14 @@ import Toast from 'primevue/toast';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useUserInput, type UserInputSnapshot } from '../composables/useUserInput';
+import { CURRENT_TAX_PARAMETERS, TAX_PARAMETER_I18N_PARAMS } from '../tax-parameters';
 
 const { t, tm } = useI18n();
+const taxParameterText = TAX_PARAMETER_I18N_PARAMS;
+const taxParameter = CURRENT_TAX_PARAMETERS;
+const baseHealthInsuranceRatePercent = taxParameter.socialInsurance.kvGeneralRate * 100;
+const defaultAdditionalKvRatePercent = taxParameter.socialInsurance.defaultAdditionalKvRate * 100;
+const defaultChildBenefitMonthlyPerChild = taxParameter.children.kindergeldMonthlyPerChild;
 
 const emit = defineEmits<{ saved: [] }>();
 
@@ -48,7 +54,7 @@ const taxClassFactor = ref(1);
 const paysChurchTax = ref(false);
 const federalState = ref<string | null>('RP');
 const healthInsurance = ref<InsuranceKind>('statutoryMandatory');
-const healthInsuranceAdditionalRate = ref(2.18);
+const healthInsuranceAdditionalRate = ref(defaultAdditionalKvRatePercent);
 const privateHealthInsuranceAnnual = ref(0);
 const privateCareInsuranceAnnual = ref(0);
 // Familie 默认有 1 个 25 岁以下子女、Kinderfreibetrag=1（Single 模式下用户可手动改）
@@ -56,7 +62,7 @@ const hasChildren = ref(true);
 const childrenUnder25 = ref(1);
 const isAlleinerziehend = ref(false);
 const childAllowance = ref(1);
-const childBenefitMonthlyPerChild = ref(259);
+const childBenefitMonthlyPerChild = ref(defaultChildBenefitMonthlyPerChild);
 const age = ref(47);
 const pensionInsurance = ref<SocialInsuranceKind>('statutoryMandatory');
 const unemploymentInsurance = ref<SocialInsuranceKind>('statutoryMandatory');
@@ -133,7 +139,7 @@ watch(spouseTaxClass, (next, prev) => {
 
 const spousePaysChurchTax = ref(false);
 const spouseHealthInsurance = ref<InsuranceKind>('statutoryMandatory');
-const spouseHealthInsuranceAdditionalRate = ref(2.18);
+const spouseHealthInsuranceAdditionalRate = ref(defaultAdditionalKvRatePercent);
 const spousePrivateHealthInsuranceAnnual = ref(0);
 const spousePrivateCareInsuranceAnnual = ref(0);
 const spousePensionInsurance = ref<SocialInsuranceKind>('statutoryMandatory');
@@ -247,14 +253,14 @@ const DEFAULTS = {
   paysChurchTax: false,
   federalState: 'RP' as string | null,
   healthInsurance: 'statutoryMandatory' as InsuranceKind,
-  healthInsuranceAdditionalRate: 2.18,
+  healthInsuranceAdditionalRate: defaultAdditionalKvRatePercent,
   privateHealthInsuranceAnnual: 0,
   privateCareInsuranceAnnual: 0,
   hasChildren: true,
   childrenUnder25: 1,
   isAlleinerziehend: false,
   childAllowance: 1,
-  childBenefitMonthlyPerChild: 259,
+  childBenefitMonthlyPerChild: defaultChildBenefitMonthlyPerChild,
   age: 47,
   pensionInsurance: 'statutoryMandatory' as SocialInsuranceKind,
   unemploymentInsurance: 'statutoryMandatory' as SocialInsuranceKind,
@@ -263,7 +269,7 @@ const DEFAULTS = {
   spouseTaxClassFactor: 1,
   spousePaysChurchTax: false,
   spouseHealthInsurance: 'statutoryMandatory' as InsuranceKind,
-  spouseHealthInsuranceAdditionalRate: 2.18,
+  spouseHealthInsuranceAdditionalRate: defaultAdditionalKvRatePercent,
   spousePrivateHealthInsuranceAnnual: 0,
   spousePrivateCareInsuranceAnnual: 0,
   spousePensionInsurance: 'statutoryMandatory' as SocialInsuranceKind,
@@ -592,21 +598,21 @@ const taxClassInfoTooltip = computed(() => {
   const items = (tm('form.taxClassInfoClasses') as string[]).map((item) => `<li>${item}</li>`).join('');
   return `<p><strong>${t('form.taxClassInfoTitle')}</strong></p><p>${t('form.taxClassInfoIntro')}</p><ul>${items}</ul>`;
 });
-const careInsuranceInfoTooltip = computed(() => t('form.careInsuranceInfoTooltip'));
-const churchTaxInfoTooltip = computed(() => t('form.churchTaxInfoTooltip'));
-const healthInsuranceInfoTooltip = computed(() => t('form.healthInsuranceInfoTooltip'));
-const healthInsuranceRateInfoTooltip = computed(() => t('form.healthInsuranceRateInfoTooltip'));
+const careInsuranceInfoTooltip = computed(() => t('form.careInsuranceInfoTooltip', taxParameterText));
+const churchTaxInfoTooltip = computed(() => t('form.churchTaxInfoTooltip', taxParameterText));
+const healthInsuranceInfoTooltip = computed(() => t('form.healthInsuranceInfoTooltip', taxParameterText));
+const healthInsuranceRateInfoTooltip = computed(() => t('form.healthInsuranceRateInfoTooltip', taxParameterText));
 const privateInsuranceDeductibleTooltip = computed(() => t('form.privateInsuranceDeductibleTooltip'));
-const singleParentReliefTooltip = computed(() => t('form.singleParentReliefTooltip'));
-const childAllowanceInfoTooltip = computed(() => t('form.childAllowanceInfoTooltip'));
-const childBenefitInfoTooltip = computed(() => t('form.childBenefitInfoTooltip'));
+const singleParentReliefTooltip = computed(() => t('form.singleParentReliefTooltip', taxParameterText));
+const childAllowanceInfoTooltip = computed(() => t('form.childAllowanceInfoTooltip', taxParameterText));
+const childBenefitInfoTooltip = computed(() => t('form.childBenefitInfoTooltip', taxParameterText));
 const pensionInsuranceInfoTooltip = computed(() => t('form.pensionInsuranceInfoTooltip'));
-const unemploymentInsuranceInfoTooltip = computed(() => t('form.unemploymentInsuranceInfoTooltip'));
+const unemploymentInsuranceInfoTooltip = computed(() => t('form.unemploymentInsuranceInfoTooltip', taxParameterText));
 const alvInsuranceMonthsLast5YearsTooltip = computed(() => t('form.alvInsuranceMonthsLast5YearsTooltip'));
 const unemploymentBenefitDurationTooltip = computed(() => t('form.unemploymentBenefitDurationTooltip'));
 const possibleSeverancePaymentDatesTooltip = computed(() => t('form.possibleSeverancePaymentDatesTooltip'));
-const oldEmployerIncomeCurrentYearTooltip = computed(() => t('form.oldEmployerIncomeCurrentYearTooltip'));
-const lastMonthlyGrossBeforeUnemploymentTooltip = computed(() => t('form.lastMonthlyGrossBeforeUnemploymentTooltip'));
+const oldEmployerIncomeCurrentYearTooltip = computed(() => t('form.oldEmployerIncomeCurrentYearTooltip', taxParameterText));
+const lastMonthlyGrossBeforeUnemploymentTooltip = computed(() => t('form.lastMonthlyGrossBeforeUnemploymentTooltip', taxParameterText));
 const donationSectionTooltip = computed(() => t('form.donationSectionTooltip'));
 const salaryRangeSectionTooltip = computed(() => t('form.salaryRangeSectionTooltip'));
 const unemploymentBenefitMonthlyTooltip = computed(() => t('form.unemploymentBenefitMonthlyTooltip'));
@@ -884,7 +890,7 @@ function handleReset() {
               </div>
               <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <InputNumber
-                  :model-value="14.6"
+                  :model-value="baseHealthInsuranceRatePercent"
                   :min-fraction-digits="1"
                   :max-fraction-digits="1"
                   suffix=" %"
@@ -1258,7 +1264,7 @@ function handleReset() {
                   </div>
                   <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <InputNumber
-                      :model-value="14.6"
+                      :model-value="baseHealthInsuranceRatePercent"
                       :min-fraction-digits="1"
                       :max-fraction-digits="1"
                       suffix=" %"

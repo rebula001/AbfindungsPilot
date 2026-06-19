@@ -14,6 +14,7 @@ import { useCalculation } from '../composables/useCalculation';
 import type { PersonYearResult, PersonTaxResult, YearComputation } from '../calculation/types';
 import { grundtarifESt, estWithProgressionsvorbehalt } from '../calculation/engine';
 import type { Cell, Scenario, ScenarioValues, StepGroup, StepPopover } from '../types/calculationSteps';
+import { TAX_PARAMETER_I18N_PARAMS } from '../tax-parameters';
 import {
   KFB_HALF_PER_CHILD_2026,
   KINDERGELD_PER_MONTH_PER_CHILD_2026,
@@ -26,6 +27,7 @@ import {
 } from '../calculation/constants';
 
 const { t, tm } = useI18n();
+const taxParameterText = TAX_PARAMETER_I18N_PARAMS;
 const {
   newJobStartDate,
   monthlyGrossNewJob,
@@ -41,7 +43,7 @@ const {
 
 const taxYearParams = computed(() => {
   const ys = years.value;
-  return { y1: ys[0]?.year ?? '', y2: ys[1]?.year ?? '' };
+  return { ...taxParameterText, y1: ys[0]?.year ?? '', y2: ys[1]?.year ?? '' };
 });
 
 const veranlagungsartOptions = computed(() => [
@@ -62,13 +64,14 @@ function formatEuro(n: number): string {
 }
 
 function tList(key: string, params?: Record<string, string | number>): string {
+  const mergedParams = { ...taxParameterText, ...params };
   const raw = tm(key);
   if (Array.isArray(raw)) {
     return (raw as string[])
-      .map((line) => (params ? line.replace(/\{(\w+)\}/g, (_m, k) => (params[k] === undefined ? `{${k}}` : String(params[k]))) : line))
+      .map((line) => line.replace(/\{(\w+)\}/g, (_m, k) => (mergedParams[k] === undefined ? `{${k}}` : String(mergedParams[k]))))
       .join('\n');
   }
-  return params ? t(key, params) : t(key);
+  return t(key, mergedParams);
 }
 
 const newJobStartProxy = computed<Date>({
@@ -489,8 +492,8 @@ function buildEstGroup(yc: YearComputation): StepGroup {
     return (
       tList('calculation.popover.soli.detailAboveFreigrenze', {
         est: fmtE(est),
-        soliRate: SOLI_RATE * 100,
-        milderungRate: SOLI_MILDERUNGSZONE_RATE * 100,
+        soliRate: taxParameterText.soliRate,
+        milderungRate: taxParameterText.soliMilderungszoneRate,
         estPlain: fmtENoSym(est),
         freigrenzePlain: fmtENoSym(freigrenze),
         cap: fmtE(cap),
@@ -1191,6 +1194,7 @@ const veranlagungLabel = computed(() => {
 
             <CalculationGroup
               :group="yv.zvEGroup"
+              :i18n-params="taxParameterText"
               :hide-spouse="isSingleMode"
               income-label-key="calculation.groups.zvE.incomeSection"
               deduction-label-key="calculation.groups.zvE.deductionSection"
@@ -1198,12 +1202,14 @@ const veranlagungLabel = computed(() => {
 
             <CalculationGroup
               :group="yv.sozialabgabenGroup"
+              :i18n-params="taxParameterText"
               :hide-spouse="isSingleMode"
               deduction-label-key="calculation.groups.sozialabgaben.deductionSection"
             />
 
             <CalculationGroup
               :group="yv.estGroup"
+              :i18n-params="taxParameterText"
               :hide-spouse="isSingleMode"
               alternatives-label-key="calculation.groups.est.alternativesSection"
               alternatives-hint-key="calculation.groups.est.alternativesHint"
@@ -1212,6 +1218,7 @@ const veranlagungLabel = computed(() => {
 
             <CalculationGroup
               :group="yv.nettoGroup"
+              :i18n-params="taxParameterText"
               :hide-spouse="isSingleMode"
               income-label-key="calculation.groups.netto.incomeSection"
               deduction-label-key="calculation.groups.netto.deductionSection"

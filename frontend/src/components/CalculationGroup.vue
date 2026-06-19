@@ -12,8 +12,17 @@ import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
 import type { Cell, DisplayStep, ResultNote, Scenario, StepGroup } from '../types/calculationSteps';
 
-defineProps<{
+const {
+  group,
+  i18nParams = {},
+  incomeLabelKey = undefined,
+  deductionLabelKey = undefined,
+  alternativesLabelKey = undefined,
+  alternativesHintKey = undefined,
+  hideSpouse = false
+} = defineProps<{
   group: StepGroup;
+  i18nParams?: Record<string, string | number>;
   /** 收入区段标签 i18n key（仅 income 非空时使用） */
   incomeLabelKey?: string;
   /** 扣扣区段标签 i18n key */
@@ -27,6 +36,10 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+
+function tr(key: string): string {
+  return t(key, i18nParams);
+}
 
 const euroFmt = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -91,20 +104,20 @@ function valueCellClass(hasPopover: boolean): string {
     <!-- 组标题 -->
     <div class="flex flex-col gap-0.5 -mt-1">
       <div class="text-sm font-semibold text-surface-800 dark:text-surface-100">
-        {{ t(group.titleKey) }}
+        {{ tr(group.titleKey) }}
       </div>
-      <div class="text-[11px] text-surface-500 italic">{{ t(group.legalBasisKey) }}</div>
+      <div class="text-[11px] text-surface-500 italic">{{ tr(group.legalBasisKey) }}</div>
     </div>
 
     <!-- 收入区（可选） -->
     <div v-if="group.income && group.income.length > 0 && incomeLabelKey" class="flex flex-col gap-2">
-      <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-1">+ {{ t(incomeLabelKey) }}</div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 px-1">+ {{ tr(incomeLabelKey) }}</div>
       <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-3 items-stretch">
         <template v-for="step in group.income" :key="step.label">
           <div class="rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
               <div
                 :class="['font-mono inline-flex items-center gap-1.5', valueCellClass(!!step.popover)]"
                 @click="openPopover($event, step, 'liegen', 'user')"
@@ -130,17 +143,17 @@ function valueCellClass(hasPopover: boolean): string {
               {{ step.label }}
             </div>
             <div class="text-xs text-center text-surface-700 dark:text-surface-300 font-medium">
-              {{ t(step.titleKey) }}
+              {{ tr(step.titleKey) }}
             </div>
             <div class="text-[10px] text-center text-surface-500 italic">
-              {{ t(step.legalBasisKey) }}
+              {{ tr(step.legalBasisKey) }}
             </div>
           </div>
 
           <div class="rounded-md border border-primary-200 dark:border-primary-700 bg-primary-50/40 dark:bg-primary-950/30 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
               <div
                 :class="['font-mono inline-flex items-center gap-1.5', valueCellClass(!!step.popover)]"
                 @click="openPopover($event, step, 'neue', 'user')"
@@ -169,19 +182,19 @@ function valueCellClass(hasPopover: boolean): string {
       <div class="flex items-center gap-2 px-1">
         <i class="pi pi-sliders-h text-amber-600 dark:text-amber-400 text-xs"></i>
         <span class="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-          {{ t(alternativesLabelKey) }}
+          {{ tr(alternativesLabelKey) }}
         </span>
       </div>
       <div v-if="alternativesHintKey" class="text-[11px] text-amber-700/80 dark:text-amber-300/80 italic px-1 -mt-1">
-        {{ t(alternativesHintKey) }}
+        {{ tr(alternativesHintKey) }}
       </div>
 
       <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-3 items-stretch">
         <template v-for="step in group.alternatives" :key="step.label">
           <div class="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/30 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
 
               <div :class="['flex flex-col gap-0.5', valueCellClass(!!step.popover)]" @click="openPopover($event, step, 'liegen', 'user')">
                 <div class="font-mono inline-flex items-baseline gap-1.5">
@@ -221,17 +234,17 @@ function valueCellClass(hasPopover: boolean): string {
               <span class="-rotate-45 font-mono font-semibold text-xs leading-none">{{ step.label }}</span>
             </div>
             <div class="text-xs text-center text-surface-700 dark:text-surface-300 font-medium">
-              {{ t(step.titleKey) }}
+              {{ tr(step.titleKey) }}
             </div>
             <div class="text-[10px] text-center text-surface-500 italic">
-              {{ t(step.legalBasisKey) }}
+              {{ tr(step.legalBasisKey) }}
             </div>
           </div>
 
           <div class="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/30 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
 
               <div :class="['flex flex-col gap-0.5', valueCellClass(!!step.popover)]" @click="openPopover($event, step, 'neue', 'user')">
                 <div class="font-mono inline-flex items-baseline gap-1.5">
@@ -270,13 +283,13 @@ function valueCellClass(hasPopover: boolean): string {
 
     <!-- 抽扣区（位于 alternatives 之后，以保证步骤编号自然递增：2.1-2.5 + 2.6 等） -->
     <div v-if="group.deductions.length > 0 && deductionLabelKey" class="flex flex-col gap-2">
-      <div class="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400 px-1">- {{ t(deductionLabelKey) }}</div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400 px-1">- {{ tr(deductionLabelKey) }}</div>
       <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-3 items-stretch">
         <template v-for="step in group.deductions" :key="step.label">
           <div class="rounded-md border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
               <div
                 :class="['font-mono inline-flex items-center gap-1.5', valueCellClass(!!step.popover)]"
                 @click="openPopover($event, step, 'liegen', 'user')"
@@ -302,17 +315,17 @@ function valueCellClass(hasPopover: boolean): string {
               {{ step.label }}
             </div>
             <div class="text-xs text-center text-surface-700 dark:text-surface-300 font-medium">
-              {{ t(step.titleKey) }}
+              {{ tr(step.titleKey) }}
             </div>
             <div class="text-[10px] text-center text-surface-500 italic">
-              {{ t(step.legalBasisKey) }}
+              {{ tr(step.legalBasisKey) }}
             </div>
           </div>
 
           <div class="rounded-md border border-primary-200 dark:border-primary-700 bg-primary-50/40 dark:bg-primary-950/30 p-3">
             <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-              <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+              <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+              <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
               <div
                 :class="['font-mono inline-flex items-center gap-1.5', valueCellClass(!!step.popover)]"
                 @click="openPopover($event, step, 'neue', 'user')"
@@ -341,8 +354,8 @@ function valueCellClass(hasPopover: boolean): string {
     <div class="grid grid-cols-[1fr_auto_1fr] gap-x-4 items-stretch">
       <div class="rounded-md border border-emerald-400 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 p-3 flex flex-col gap-2">
         <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-          <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-          <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+          <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+          <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
           <div
             :class="['font-mono font-semibold text-base inline-flex items-center gap-1.5', valueCellClass(!!group.result.popover)]"
             @click="openPopover($event, group.result, 'liegen', 'user')"
@@ -387,17 +400,17 @@ function valueCellClass(hasPopover: boolean): string {
           {{ group.result.label }}
         </div>
         <div class="text-xs text-center text-surface-800 dark:text-surface-100 font-semibold">
-          {{ t(group.result.titleKey) }}
+          {{ tr(group.result.titleKey) }}
         </div>
         <div class="text-[10px] text-center text-surface-500 italic">
-          {{ t(group.result.legalBasisKey) }}
+          {{ tr(group.result.legalBasisKey) }}
         </div>
       </div>
 
       <div class="rounded-md border border-emerald-400 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 p-3 flex flex-col gap-2">
         <div :class="['grid gap-x-3 text-sm', hideSpouse ? 'grid-cols-1' : 'grid-cols-2']">
-          <div class="text-xs text-surface-500">{{ t('calculation.person.user') }}</div>
-          <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ t('calculation.person.spouse') }}</div>
+          <div class="text-xs text-surface-500">{{ tr('calculation.person.user') }}</div>
+          <div v-if="!hideSpouse" class="text-xs text-surface-500">{{ tr('calculation.person.spouse') }}</div>
           <div
             :class="['font-mono font-semibold text-base inline-flex items-center gap-1.5', valueCellClass(!!group.result.popover)]"
             @click="openPopover($event, group.result, 'neue', 'user')"
@@ -446,13 +459,13 @@ function valueCellClass(hasPopover: boolean): string {
             {{ popoverStep.label }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-semibold">{{ t(popoverStep.titleKey) }}</span>
-            <span class="text-[11px] text-surface-500 italic">{{ t(popoverStep.legalBasisKey) }}</span>
+            <span class="text-sm font-semibold">{{ tr(popoverStep.titleKey) }}</span>
+            <span class="text-[11px] text-surface-500 italic">{{ tr(popoverStep.legalBasisKey) }}</span>
           </div>
         </div>
 
         <div class="text-[10px] uppercase tracking-wide text-surface-500">
-          {{ t('calculation.scenarios.' + popoverScenario) }} · {{ t('calculation.person.' + popoverCell) }}
+          {{ tr('calculation.scenarios.' + popoverScenario) }} · {{ tr('calculation.person.' + popoverCell) }}
         </div>
 
         <div v-if="popoverStep.popover" class="flex flex-col gap-2">

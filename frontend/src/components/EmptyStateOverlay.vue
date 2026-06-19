@@ -7,8 +7,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
+import { TAX_PARAMETER_I18N_PARAMS } from '../tax-parameters';
 
 const { t } = useI18n();
+const taxParameterText = TAX_PARAMETER_I18N_PARAMS;
 </script>
 
 <template>
@@ -29,7 +31,7 @@ const { t } = useI18n();
           <div class="text-xs leading-relaxed">
             <div class="mb-1 font-semibold">{{ t('emptyState.disclaimerTitle') }}</div>
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div v-html="t('emptyState.disclaimerBody')"></div>
+            <div v-html="t('emptyState.disclaimerBody', taxParameterText)"></div>
           </div>
         </div>
       </Message>

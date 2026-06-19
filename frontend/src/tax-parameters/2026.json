@@ -1,0 +1,67 @@
+{
+  "year": 2026,
+  "incomeTax": {
+    "grundfreibetrag": 12348,
+    "zone2End": 17799,
+    "zone3End": 69878,
+    "zone4End": 277825,
+    "zone2A": 914.51,
+    "zone2B": 1400,
+    "zone3A": 173.1,
+    "zone3B": 2397,
+    "zone3C": 1034.87,
+    "zone4Rate": 0.42,
+    "zone4C": 11135.63,
+    "zone5Rate": 0.45,
+    "zone5C": 19470.38
+  },
+  "pauschbetraege": {
+    "arbeitnehmer": 1230,
+    "sonderausgabenSingle": 36,
+    "sonderausgabenJoint": 72,
+    "donationCapRate": 0.2
+  },
+  "children": {
+    "kfbFullPerChild": 9756,
+    "kindergeldMonthlyPerChild": 259,
+    "singleParentBase": 4260,
+    "singleParentAdditionalChild": 240
+  },
+  "socialInsurance": {
+    "bbgKvPvMonthly": 5812.5,
+    "bbgRvAlvMonthly": 8450,
+    "jaegYearly": 73800,
+    "kvGeneralRate": 0.146,
+    "kvReducedRate": 0.14,
+    "averageAdditionalKvRate": 0.029,
+    "defaultAdditionalKvRate": 0.0218,
+    "pvTotalWithChild": 0.036,
+    "pvEmployeeWithChild": 0.018,
+    "pvEmployeeWithChildSachsen": 0.023,
+    "pvChildlessSurcharge": 0.006,
+    "pvChildDiscount": 0.0025,
+    "pvChildDiscountMaxChildren": 5,
+    "rvEmployeeRate": 0.093,
+    "alvEmployeeRate": 0.013
+  },
+  "vorsorge": {
+    "kvKrankengeldAbschlag": 0.04,
+    "basisHoechstbetrag": 30230
+  },
+  "soli": {
+    "singleFreigrenze": 20350,
+    "singleObergrenze": 37839,
+    "jointFreigrenze": 40700,
+    "jointObergrenze": 75678,
+    "rate": 0.055,
+    "milderungszoneRate": 0.119
+  },
+  "kirchensteuer": {
+    "rateByBw": 0.08,
+    "rateOther": 0.09
+  },
+  "uiExamples": {
+    "unemploymentDateMonth": 8,
+    "unemploymentDateDay": 1
+  }
+}

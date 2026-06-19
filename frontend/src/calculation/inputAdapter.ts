@@ -13,7 +13,7 @@
 //   sodass die Engine unverändert mit zwei Personen rechnen kann.
 
 import type { PersonProfile, PersonIncomeData } from '../calculation/types';
-import { ALLGEMEINER_KV_RATE } from '../calculation/constants';
+import { ALLGEMEINER_KV_RATE, TAX_PARAMETER_YEAR } from '../calculation/constants';
 import type { InsuranceKind, SocialInsuranceKind, UserInputSnapshot } from '../composables/useUserInput';
 
 function isSvSubject(v: SocialInsuranceKind): boolean {
@@ -233,7 +233,7 @@ export function inputToIncomeSpouse(s: UserInputSnapshot): PersonIncomeData {
 /** Tax-Jahre: Jahr der Arbeitslosigkeit + folgendes Jahr. */
 export function deriveTaxYears(s: UserInputSnapshot): readonly number[] {
   const d = parseIso(s.unemploymentDate);
-  const y = d ? d.getFullYear() : 2026;
+  const y = d ? d.getFullYear() : TAX_PARAMETER_YEAR;
   return [y, y + 1] as const;
 }
 
@@ -248,7 +248,7 @@ export function deriveNewJobStartOptions(s: UserInputSnapshot): Date[] {
     const fixed = parseIso(s.newJobStartDate);
     if (fixed) return [fixed];
   }
-  const start = parseIso(s.unemploymentDate) ?? new Date(2026, 7, 1);
+  const start = parseIso(s.unemploymentDate) ?? new Date(TAX_PARAMETER_YEAR, 7, 1);
   const out: Date[] = [];
   for (let i = 0; i < 17; i++) {
     out.push(new Date(start.getFullYear(), start.getMonth() + i, 1));
@@ -285,6 +285,6 @@ export function deriveMonthlyGrossOptions(s: UserInputSnapshot): number[] {
  */
 export function deriveSeveranceDateOptions(s: UserInputSnapshot): Date[] {
   const d = parseIso(s.unemploymentDate);
-  if (!d) return [new Date(2026, 7, 15), new Date(2027, 0, 15)];
+  if (!d) return [new Date(TAX_PARAMETER_YEAR, 7, 15), new Date(TAX_PARAMETER_YEAR + 1, 0, 15)];
   return [new Date(d.getFullYear(), d.getMonth(), 15), new Date(d.getFullYear() + 1, 0, 15)];
 }

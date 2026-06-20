@@ -3,8 +3,6 @@
 [![CI](https://github.com/rebula001/AbfindungsPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/rebula001/AbfindungsPilot/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/rebula001/AbfindungsPilot/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/rebula001/AbfindungsPilot/actions/workflows/deploy-pages.yml)
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rebula001_AbfindungsPilot&metric=alert_status)](https://sonarcloud.io/summary/overall?id=rebula001_AbfindungsPilot)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=rebula001_AbfindungsPilot&metric=coverage)](https://sonarcloud.io/summary/overall?id=rebula001_AbfindungsPilot)
 
 > Browser-Tool zur Optimierung der Abfindungs-Steuerstrategie nach deutschem Recht (Veranlagungszeitraum 2026).
 >

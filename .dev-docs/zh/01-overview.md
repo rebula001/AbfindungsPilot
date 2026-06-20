@@ -76,6 +76,6 @@ App 对两个税年各算 **两个场景**：
 | 国际化 | vue-i18n 11 (DE/ZH)                             |
 | 图表   | Chart.js 4                                      |
 | Lint   | ESLint 10 + Prettier 3                          |
-| 质量   | SonarQube（自建服务器）                         |
+| 质量   | SonarCloud + Vitest Coverage                    |
 
 -> 架构细节见 [02 - 架构](./02-architecture.md)。

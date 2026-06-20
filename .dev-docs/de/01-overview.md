@@ -76,6 +76,6 @@ Diese Vereinfachungen sind im Code an den jeweiligen Stellen kommentiert (siehe 
 | i18n      | vue-i18n 11 (DE/ZH)                              |
 | Chart     | Chart.js 4                                       |
 | Lint      | ESLint 10 + Prettier 3                           |
-| Quality   | SonarQube (eigener Server)                       |
+| Quality   | SonarCloud + Vitest Coverage                     |
 
 -> Architekturdetails siehe [02 - Architektur](./02-architecture.md).

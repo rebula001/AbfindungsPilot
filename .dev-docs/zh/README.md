@@ -26,8 +26,10 @@
 | `npm run check:all`                   | lint + format + i18n（不构建）         |
 | `npm run lint:check` / `lint:fix`     | ESLint                                 |
 | `npm run format:check` / `format:fix` | Prettier                               |
-| `npm run i18n:check`                  | de/zh 键差异（CI 阻塞）                |
-| `npm run sonar:all`                   | SonarQube 扫描 + 拉取报告              |
+| `npm run test`                        | Vitest 单元测试                        |
+| `npm run test:coverage`               | Vitest 覆盖率，生成 SonarCloud lcov    |
+| `npm run i18n:check`                  | de/zh 键差异（本地 build 阻塞）        |
+| `npm run sonar:all`                   | SonarCloud 扫描 + 拉取报告             |
 
 ## 相关目录
 

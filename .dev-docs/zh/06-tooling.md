@@ -1,24 +1,26 @@
 # 06 - 工具链
 
-> **30 秒了解：** `npm run build` 是「全部绿」的唯一入口，依次跑 lint、format、i18n 检查、TypeScript 和 Vite 构建。本地快试试用 `build:fast`。SonarQube 通过 PowerShell 脚本跑。
+> **30 秒了解：** `npm run build` 是本地「全部绿」入口，依次跑 lint、format、i18n 检查、TypeScript 和 Vite 构建。GitHub CI 单独跑 format、lint、Vitest coverage 和 `build:fast`。SonarCloud 通过 Vitest coverage + PowerShell 脚本跑。
 
 ## NPM 命令
 
-| 命令 | 作用 | CI 阻塞 |
-| --- | --- | --- |
-| `npm run dev` | Vite 开发服务器，HMR 在 `<http://localhost:5173>` | - |
-| `npm run build` | **严格**：`check:all` + `vue-tsc -b` + `vite build` + `dist/` | ✅ |
-| `npm run build:fast` | 快速：仅 `vue-tsc -b` + `vite build`（本地调试用） | - |
-| `npm run preview` | 本地启动 `dist/` 静态服务器（`<http://localhost:4173>`） | - |
-| `npm run check:all` | 聚合：`lint:check` + `format:check` + `i18n:check`（不构建） | ✅ |
-| `npm run lint:check` | ESLint（只读） | ✅ |
-| `npm run lint:fix` | ESLint + 自动修复 | - |
-| `npm run format:check` | Prettier（只读） | ✅ |
-| `npm run format:fix` | Prettier + 自动修复 | - |
-| `npm run i18n:check` | DE/ZH key 差异检查（见 [05](./05-i18n.md)） | ✅ |
-| `npm run sonar:all` | SonarQube 扫描 + 拉取报告 | 发布前推荐 |
+| 命令                    | 作用                                                          | 检查策略          |
+| ----------------------- | ------------------------------------------------------------- | ----------------- |
+| `npm run dev`           | Vite 开发服务器，HMR 在 `<http://localhost:5173>`             | -                 |
+| `npm run build`         | **严格**：`check:all` + `vue-tsc -b` + `vite build` + `dist/` | 提交前            |
+| `npm run build:fast`    | 快速：仅 `vue-tsc -b` + `vite build`（本地调试用）            | -                 |
+| `npm run preview`       | 本地启动 `dist/` 静态服务器（`<http://localhost:4173>`）      | -                 |
+| `npm run check:all`     | 聚合：`lint:check` + `format:check` + `i18n:check`（不构建）  | 本地 build 内部   |
+| `npm run lint:check`    | ESLint（只读）                                                | CI                |
+| `npm run lint:fix`      | ESLint + 自动修复                                             | -                 |
+| `npm run format:check`  | Prettier（只读）                                              | CI                |
+| `npm run format:fix`    | Prettier + 自动修复                                           | -                 |
+| `npm run test`          | Vitest 单元测试                                               | 推荐              |
+| `npm run test:coverage` | Vitest + `coverage/lcov.info`，供 SonarCloud 读取             | 跑 Sonar 前推荐   |
+| `npm run i18n:check`    | DE/ZH key 差异检查（见 [05](./05-i18n.md)）                   | 本地 `build` 阻塞 |
+| `npm run sonar:all`     | `test:coverage` + SonarCloud 扫描 + 拉取报告                  | 发布前推荐        |
 
-**经验法则：** 本地用 `dev` 和 `build:fast`，每次 commit 前跑 `build`。
+**经验法则：** 本地用 `dev` 和 `build:fast`，每次 commit 前跑 `build`。CI 不单独跑 `i18n:check`，所以涉及翻译 key 的改动尤其要本地跑 `npm run build`。
 
 ## 构建优化
 
@@ -36,88 +38,120 @@ PrimeIcons 的 `@font-face` 规则带五种字体格式（eot、woff2、woff、t
 
 ### 当前 bundle 大小（`npm run build` 后）
 
-| Asset | 原始 | gzip | 何时加载 |
-| --- | --- | --- | --- |
-| `index.html` | 4.6 KB | 1.6 KB | First Paint |
-| `index-*.css` | 47.6 KB | 10.0 KB | First Paint |
-| `primeicons-*.woff2` | 35.1 KB | - | First Paint |
-| `index-*.js` | **942 KB** | **231 KB** | First Paint |
-| `ChartView-*.js` | 23.0 KB | 7.3 KB | 切到图表时 |
-| `auto-*.js`（Chart.js） | 203.1 KB | 69.6 KB | 切到图表时 |
+| Asset                   | 原始       | gzip       | 何时加载    |
+| ----------------------- | ---------- | ---------- | ----------- |
+| `index.html`            | 4.6 KB     | 1.6 KB     | First Paint |
+| `index-*.css`           | 47.6 KB    | 10.0 KB    | First Paint |
+| `primeicons-*.woff2`    | 35.1 KB    | -          | First Paint |
+| `index-*.js`            | **942 KB** | **231 KB** | First Paint |
+| `ChartView-*.js`        | 23.0 KB    | 7.3 KB     | 切到图表时  |
+| `auto-*.js`（Chart.js） | 203.1 KB   | 69.6 KB    | 切到图表时  |
 
 Tree-shaking 默认启用（Vite 8 + RollDown）。未使用的 PrimeVue 组件（如 `DataTable`、`Tree`、`Galleria`）不在 bundle 里——已通过 bundle 检查验证。
 
 ## Lint / Format 配置
 
-| 工具 | 文件 | 要点 |
-| --- | --- | --- |
-| ESLint | [`eslint.config.js`](../../../frontend/eslint.config.js) | `typescript-eslint` + `eslint-plugin-vue`，Flat Config（默认 + 项目覆盖） |
-| Prettier | [`.prettierrc.json`](../../../frontend/.prettierrc.json) | 默认覆盖量少 |
-| Prettier Ignore | [`.prettierignore`](../../../frontend/.prettierignore) | 排除 `node_modules`、`dist`、`coverage`、Sonar 产物 |
-| Vue-I18n-Check | [`scripts/check-i18n-keys.mjs`](../../../frontend/scripts/check-i18n-keys.mjs) | 见 [05](./05-i18n.md) |
+| 工具            | 文件                                                                           | 要点                                                                      |
+| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| ESLint          | [`eslint.config.js`](../../../frontend/eslint.config.js)                       | `typescript-eslint` + `eslint-plugin-vue`，Flat Config（默认 + 项目覆盖） |
+| Prettier        | [`.prettierrc.json`](../../../frontend/.prettierrc.json)                       | 默认覆盖量少                                                              |
+| Prettier Ignore | [`.prettierignore`](../../../frontend/.prettierignore)                         | 排除 `node_modules`、`dist`、`coverage`、Sonar 产物                       |
+| Vue-I18n-Check  | [`scripts/check-i18n-keys.mjs`](../../../frontend/scripts/check-i18n-keys.mjs) | 见 [05](./05-i18n.md)                                                     |
 
 ## TypeScript
 
 整个项目 `strict: true`。`vue-tsc` 在 `npm run build` 里跑。SFC 模板也会被类型检查。
 
-| 文件 | 角色 |
-| --- | --- |
-| [`tsconfig.json`](../../../frontend/tsconfig.json) | Composite 根 |
-| [`tsconfig.app.json`](../../../frontend/tsconfig.app.json) | App 代码（`src/`） |
+| 文件                                                         | 角色                  |
+| ------------------------------------------------------------ | --------------------- |
+| [`tsconfig.json`](../../../frontend/tsconfig.json)           | Composite 根          |
+| [`tsconfig.app.json`](../../../frontend/tsconfig.app.json)   | App 代码（`src/`）    |
 | [`tsconfig.node.json`](../../../frontend/tsconfig.node.json) | Vite 配置 + Node 脚本 |
 
-## SonarQube
+## 测试 / 覆盖率
 
-Connected Mode 可选（服务器：私人 SonarQube 或 SonarCloud）。配置文件：
+Vitest 配置在 [`vite.config.ts`](../../../frontend/vite.config.ts)：
 
-| 文件 | 内容 | 入 Git? |
-| --- | --- | --- |
-| [`sonar-project.properties`](../../../frontend/sonar-project.properties) | URL、Token、Project Key、Excludes | ❌（含 token，已 `.gitignore`） |
-| [`scripts/sonar-scan.ps1`](../../../frontend/scripts/sonar-scan.ps1) | 一站式扫描 + 拉报告 | ✅ |
-| [`.vscode/settings.json`](../../../.vscode/settings.json) | SonarLint 连接 + 关 Vue 误报 | ✅ |
+- 环境：`jsdom`
+- Coverage Provider：V8
+- 报告：`coverage/lcov.info`
+- 测试文件放在 [`tests/`](../../../frontend/tests/)
+
+[`package.json`](../../../frontend/package.json) 里的 NPM scripts：
+
+```json
+"test": "vitest run",
+"test:coverage": "vitest run --coverage"
+```
+
+```powershell
+cd frontend
+npm run test
+npm run test:coverage
+```
+
+`coverage/` 是生成目录，继续由 `.gitignore` 忽略。
+
+## SonarCloud
+
+本项目不适合使用 SonarCloud Automatic Analysis，因为 Automatic Analysis 不支持 coverage 导入，并且会忽略 `sonar-project.properties`。因此本项目应在 SonarCloud 里**关闭 Automatic Analysis**，使用本地或之后 CI 里的 `npm run sonar:all`。
+
+配置文件：
+
+| 文件                                                                     | 内容                                                                         | 入 Git?          |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ---------------- |
+| [`sonar-project.properties`](../../../frontend/sonar-project.properties) | SonarCloud URL、Organization、Project Key、Sources/Tests、Coverage、Excludes | ✅（不含 token） |
+| [`scripts/sonar-scan.ps1`](../../../frontend/scripts/sonar-scan.ps1)     | 一站式扫描 + 拉报告                                                          | ✅               |
+| [`.vscode/settings.json`](../../../.vscode/settings.json)                | SonarLint 项目绑定（`projectKey` + `connectionId`）                          | ✅               |
 
 关键 Excludes：
 
 ```properties
 sonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/*.config.js,**/*.config.ts
-sonar.cp.exclusions=src/i18n/**       # de.ts/zh.ts 结构相同（设计如此）
+sonar.tests=tests
+sonar.test.inclusions=tests/**/*.test.ts,tests/**/*.spec.ts
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+sonar.coverage.exclusions=src/views/**,src/components/**,src/App.vue,src/main.ts,src/**/*.d.ts
+sonar.cpd.exclusions=src/i18n/**      # de.ts/zh.ts 结构相同（设计如此）
 sonar.scm.disabled=false              # Git 初始化后启用（每行 blame）
 ```
 
-Token 分工：
+Token：
 
-- `sonar.token`（`sqp_`）-> Scanner 上传用（`sonar-scanner.exe`）
-- `sonar.report.token`（`squ_`）-> Web API 拉报告用
+- token **不写入** `sonar-project.properties`
+- `SONAR_TOKEN` 需要设置为 Windows 用户环境变量
+- 可选设置 `SONAR_REPORT_TOKEN`；否则报告拉取也使用 `SONAR_TOKEN`
+
+```powershell
+[Environment]::SetEnvironmentVariable("SONAR_TOKEN", "<token>", "User")
+```
+
+设置后重启 VS Code/终端。
+
+脚本优先使用本地 `node_modules/.bin/sonar-scanner.cmd`。扫描前会清理 `.scannerwork/`，避免旧的临时目录或 lock 文件导致扫描失败。
 
 报告输出：`frontend/.sonarqube-report/sonar-report.json`（一份 JSON 含 Quality Gate、Metrics、按文件分组的 Issues、重复代码详情）。便于本地查看或 diff。
+
+当前目标状态：
+
+- Quality Gate: OK
+- New Code Coverage: >= 80%
+- New Code 上 Issues/Bugs/Code Smells 为 0
 
 ### 本地 SonarLint（VS Code）
 
 扩展 `sonarsource.sonarlint-vscode` 已装。Connected Mode 通过下面两个配置自动激活：
 
-- `.vscode/settings.json` -> `connectionId: '<default>'` + `projectKey: 'Abfindungspilot'`
-- 用户 `settings` -> `sonarlint.connectedMode.connections.sonarqube` 含 `serverUrl: '<your-sonarqube-url>'`（无显式 `connectionId` -> 自动为 `<default>`）
+- `.vscode/settings.json` -> `connectionId: 'rebula001-sonarcloud'` + `projectKey: 'rebula001_AbfindungsPilot'`
+- 用户 `settings` -> `sonarlint.connectedMode.connections.sonarcloud` 含 `organizationKey: 'rebula001'`、`connectionId: 'rebula001-sonarcloud'`、`region: 'EU'`
 
-验证：VS Code -> Output -> "SonarLint" Channel -> 日志含 `Bound to project 'Abfindungspilot'`。
-
-### Vue 3 与 SonarLint React Hooks 规则
-
-`.vscode/settings.json` 中已关：
-
-```jsonc
-"sonarlint.rules": {
-  "typescript:S6440": { "level": "off" },
-  "javascript:S6440": { "level": "off" }
-}
-```
-
-原因：SonarLint S6440 检测 React Hook（`useXxx`）在条件 / 循环里调用 —— Vue 3 Composition API 是误报。
+验证：VS Code -> Output -> "SonarLint" Channel -> 日志含 `Bound to project 'rebula001_AbfindungsPilot'`。
 
 ## Git
 
-| 文件 | 作用 |
-| --- | --- |
-| [`/.gitignore`](../../../.gitignore) | 仓库根，覆盖所有路径（含 `frontend/sonar-project.properties`） |
+| 文件                                 | 作用                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| [`/.gitignore`](../../../.gitignore) | 仓库根，忽略生成物（`dist/`、`coverage/`、`.scannerwork/`、`.sonarqube-report/`、`node_modules/`） |
 
 `core.autocrlf=true`（Windows 习惯）。首次 commit 的 LF<->CRLF 警告正常；仓库内文件以 LF 保存。
 

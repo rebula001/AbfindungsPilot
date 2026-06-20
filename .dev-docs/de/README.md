@@ -26,8 +26,10 @@
 | `npm run check:all`                   | lint + format + i18n (kein Build)        |
 | `npm run lint:check` / `lint:fix`     | ESLint                                   |
 | `npm run format:check` / `format:fix` | Prettier                                 |
-| `npm run i18n:check`                  | DE/ZH Key-Diff (CI-blockierend)          |
-| `npm run sonar:all`                   | SonarQube Scan + Report-Fetch            |
+| `npm run test`                        | Vitest Unit-Tests                        |
+| `npm run test:coverage`               | Vitest Coverage, erzeugt SonarCloud lcov |
+| `npm run i18n:check`                  | DE/ZH Key-Diff (blockiert lokalen Build) |
+| `npm run sonar:all`                   | SonarCloud Scan + Report-Fetch           |
 
 ## Verwandte Verzeichnisse
 

@@ -1,6 +1,3 @@
-# ===== 敏感文件（含 token，绝不能提交）=====
-frontend/sonar-project.properties
-
 # ===== 报告 / scanner 工作目录 =====
 frontend/.sonarqube-report/
 frontend/.scannerwork/
@@ -11,9 +8,7 @@ frontend/node_modules/
 frontend/dist/
 node_modules/
 dist/
-
-# ===== pack-frontend.ps1 输出 =====
-abfindungspilot.zip
+*.tsbuildinfo
 
 # ===== 日志 =====
 *.log

@@ -1,7 +1,7 @@
 # sonar-scan.ps1 - One-shot SonarQube scan + report fetcher
 # ------------------------------------------------------------
 # 1. Reads config from frontend/sonar-project.properties
-# 2. Runs sonar-scanner (uses sonar.token, sqp_...)
+# 2. Runs sonar-scanner (uses SONAR_TOKEN from the environment)
 # 3. Waits for the CE task to finish (/api/ce/task)
 # 4. Pulls Quality Gate, Metrics (New + Overall),
 #    Issues (file-grouped), Duplications detail (Web API)
@@ -23,6 +23,9 @@ $scriptDir = $PSScriptRoot
 $frontendDir = Split-Path -Parent $scriptDir
 $propsPath = Join-Path $frontendDir 'sonar-project.properties'
 $reportDir = Join-Path $frontendDir '.sonarqube-report'
+$scannerWorkDir = Join-Path $frontendDir '.scannerwork'
+$localScannerCmd = Join-Path $frontendDir 'node_modules\.bin\sonar-scanner.cmd'
+$localScannerUnix = Join-Path $frontendDir 'node_modules/.bin/sonar-scanner'
 
 if (-not (Test-Path $propsPath)) {
   Write-Host "sonar-project.properties not found at $propsPath" -ForegroundColor Red
@@ -42,16 +45,69 @@ Get-Content $propsPath | ForEach-Object {
 $projectKey = $props['sonar.projectKey']
 $projectName = if ($props.ContainsKey('sonar.projectName')) { $props['sonar.projectName'] } else { $projectKey }
 $hostUrl = ($props['sonar.host.url']).TrimEnd('/')
-$scanToken = $props['sonar.token']
+$scanToken = if ($env:SONAR_TOKEN) {
+  $env:SONAR_TOKEN
+} elseif ($props.ContainsKey('sonar.token')) {
+  $props['sonar.token']
+} else {
+  $null
+}
 $reportToken = if ($props.ContainsKey('sonar.report.token') -and $props['sonar.report.token']) {
   $props['sonar.report.token']
+} elseif ($env:SONAR_REPORT_TOKEN) {
+  $env:SONAR_REPORT_TOKEN
 } else {
   $scanToken
 }
 
 if (-not $projectKey -or -not $hostUrl -or -not $reportToken) {
-  Write-Host 'Missing sonar.projectKey / sonar.host.url / sonar.token in properties.' -ForegroundColor Red
+  Write-Host 'Missing required Sonar configuration:' -ForegroundColor Red
+  if (-not $projectKey) { Write-Host '  - sonar.projectKey in sonar-project.properties' -ForegroundColor Red }
+  if (-not $hostUrl) { Write-Host '  - sonar.host.url in sonar-project.properties' -ForegroundColor Red }
+  if (-not $reportToken) { Write-Host '  - SONAR_TOKEN in the environment' -ForegroundColor Red }
   exit 2
+}
+
+if (-not $SkipScan -and -not $scanToken) {
+  Write-Host 'Missing SONAR_TOKEN in the environment. Set it before running a full scan.' -ForegroundColor Red
+  exit 2
+}
+
+$scannerCommand = $null
+if (Test-Path $localScannerCmd) {
+  $scannerCommand = $localScannerCmd
+} elseif (Test-Path $localScannerUnix) {
+  $scannerCommand = $localScannerUnix
+} else {
+  $scannerCommandInfo = Get-Command sonar-scanner -ErrorAction SilentlyContinue
+  if ($scannerCommandInfo) {
+    $scannerCommand = $scannerCommandInfo.Source
+  } else {
+    $scannerCommandInfo = Get-Command sonar -ErrorAction SilentlyContinue
+    if ($scannerCommandInfo) { $scannerCommand = $scannerCommandInfo.Source }
+  }
+}
+
+if (-not $SkipScan -and -not $scannerCommand) {
+  Write-Host 'sonar-scanner was not found. Run `npm install` in the frontend directory.' -ForegroundColor Red
+  exit 2
+}
+
+function Remove-ScannerWorkDir {
+  if (-not (Test-Path $script:scannerWorkDir)) { return }
+
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      Remove-Item -LiteralPath $script:scannerWorkDir -Recurse -Force -ErrorAction Stop
+      return
+    } catch {
+      if ($attempt -eq 3) {
+        Write-Host "Unable to clean $script:scannerWorkDir. Close processes using it and try again." -ForegroundColor Red
+        throw
+      }
+      Start-Sleep -Seconds 1
+    }
+  }
 }
 
 # Branch (best effort via git)
@@ -63,7 +119,7 @@ try {
 } catch {} finally { Pop-Location }
 
 $apiHeaders = @{ Authorization = "Bearer $reportToken" }
-$componentPrefix = "$projectKey:"
+$componentPrefix = "${projectKey}:"
 
 Write-Host "Project : $projectKey ($projectName)" -ForegroundColor Gray
 Write-Host "Host    : $hostUrl" -ForegroundColor Gray
@@ -76,9 +132,10 @@ $ceTaskId = $null
 if (-not $SkipScan) {
   Write-Host ''
   Write-Host 'Running sonar-scanner...' -ForegroundColor Cyan
+  Remove-ScannerWorkDir
   Push-Location $frontendDir
   try {
-    & sonar
+    & $scannerCommand
     if ($LASTEXITCODE -ne 0) {
       Write-Host "sonar-scanner failed (exit $LASTEXITCODE)" -ForegroundColor Red
       exit 1

@@ -468,8 +468,14 @@ function buildEstGroup(yc: YearComputation): StepGroup {
     };
   };
 
+  function jointTaxForScenario(scenario: Scenario): YearComputation['stayUnemployed']['jointTax'] {
+    if (yc.mode !== 'joint') return undefined;
+    if (scenario === 'liegen') return yc.stayUnemployed.jointTax;
+    return yc.newJob.jointTax;
+  }
+
   function describeSoli(c: (typeof cells)[number]): string {
-    const jointTax = yc.mode === 'joint' ? (c.scenario === 'liegen' ? yc.stayUnemployed.jointTax : yc.newJob.jointTax) : undefined;
+    const jointTax = jointTaxForScenario(c.scenario);
     const freigrenze = jointTax ? SOLI_FREIGRENZE_JOINT_2026 : SOLI_FREIGRENZE_SINGLE_2026;
     const est = Math.floor(Math.max(0, jointTax ? jointTax.zuschlagsteuerBaseIncomeTaxJoint : c.tax.zuschlagsteuerBaseIncomeTax));
     const jointAllocation = jointTax
@@ -1080,9 +1086,13 @@ const veranlagungLabel = computed(() => {
 
         <div class="flex flex-wrap gap-x-4 gap-y-3 items-end flex-1 lg:justify-start">
           <div class="flex flex-col gap-1 w-55">
-            <span class="text-xs text-surface-700 dark:text-surface-300">{{ t('calculation.sliders.newJobStartDate') }}</span>
+            <label for="newJobStartDate" class="text-xs text-surface-700 dark:text-surface-300">
+              {{ t('calculation.sliders.newJobStartDate') }}
+            </label>
             <DatePicker
+              id="newJobStartDate"
               v-model="newJobStartProxy"
+              input-id="newJobStartDate"
               view="month"
               date-format="mm/yy"
               :min-date="minNewJobDate"
@@ -1095,9 +1105,13 @@ const veranlagungLabel = computed(() => {
           </div>
 
           <div class="flex flex-col gap-1 w-55">
-            <span class="text-xs text-surface-700 dark:text-surface-300">{{ t('calculation.sliders.monthlyGrossNewJob') }}</span>
+            <label for="monthlyGrossNewJob" class="text-xs text-surface-700 dark:text-surface-300">
+              {{ t('calculation.sliders.monthlyGrossNewJob') }}
+            </label>
             <Select
+              id="monthlyGrossNewJob"
               v-model="monthlyGrossNewJob"
+              input-id="monthlyGrossNewJob"
               :options="monthlyGrossOptions"
               option-label="label"
               option-value="value"

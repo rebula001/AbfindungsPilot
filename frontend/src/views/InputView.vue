@@ -753,6 +753,7 @@ function handleReset() {
                 ></button>
               </div>
               <Select
+                id="taxClass"
                 v-model="taxClass"
                 input-id="taxClass"
                 :options="taxClassOptions"
@@ -828,6 +829,7 @@ function handleReset() {
                 <span class="text-primary-600" aria-hidden="true">*</span>
               </label>
               <Select
+                id="federalState"
                 v-model="federalState"
                 input-id="federalState"
                 name="federalState"
@@ -863,6 +865,7 @@ function handleReset() {
                 ></button>
               </div>
               <Select
+                id="healthInsurance"
                 v-model="healthInsurance"
                 input-id="healthInsurance"
                 :options="insuranceOptions"
@@ -1007,6 +1010,7 @@ function handleReset() {
             <div v-if="hasChildren" class="flex flex-col gap-2">
               <label for="childrenUnder25">{{ t('form.childrenUnder25') }}</label>
               <Select
+                id="childrenUnder25"
                 v-model="childrenUnder25"
                 input-id="childrenUnder25"
                 :options="childrenUnder25Options"
@@ -1060,6 +1064,7 @@ function handleReset() {
                 ></button>
               </div>
               <Select
+                id="childAllowance"
                 v-model="childAllowance"
                 input-id="childAllowance"
                 :options="childAllowanceOptions"
@@ -1104,7 +1109,7 @@ function handleReset() {
             <!-- Alter -->
             <div class="flex flex-col gap-2">
               <label for="age">{{ t('form.age') }}</label>
-              <Select v-model="age" input-id="age" :options="ageOptions" option-label="label" option-value="value" size="small" fluid />
+              <Select id="age" v-model="age" input-id="age" :options="ageOptions" option-label="label" option-value="value" size="small" fluid />
             </div>
 
             <!-- Rentenversicherung -->
@@ -1124,6 +1129,7 @@ function handleReset() {
                 ></button>
               </div>
               <Select
+                id="pensionInsurance"
                 v-model="pensionInsurance"
                 input-id="pensionInsurance"
                 :options="socialInsuranceOptions"
@@ -1151,6 +1157,7 @@ function handleReset() {
                 ></button>
               </div>
               <Select
+                id="unemploymentInsurance"
                 v-model="unemploymentInsurance"
                 input-id="unemploymentInsurance"
                 :options="socialInsuranceOptions"
@@ -1181,6 +1188,7 @@ function handleReset() {
                     ></button>
                   </div>
                   <Select
+                    id="spouseTaxClass"
                     v-model="spouseTaxClass"
                     input-id="spouseTaxClass"
                     :options="taxClassOptions"
@@ -1237,6 +1245,7 @@ function handleReset() {
                     ></button>
                   </div>
                   <Select
+                    id="spouseHealthInsurance"
                     v-model="spouseHealthInsurance"
                     input-id="spouseHealthInsurance"
                     :options="insuranceOptions"
@@ -1366,6 +1375,7 @@ function handleReset() {
                     ></button>
                   </div>
                   <Select
+                    id="spousePensionInsurance"
                     v-model="spousePensionInsurance"
                     input-id="spousePensionInsurance"
                     :options="socialInsuranceOptions"
@@ -1392,6 +1402,7 @@ function handleReset() {
                     ></button>
                   </div>
                   <Select
+                    id="spouseUnemploymentInsurance"
                     v-model="spouseUnemploymentInsurance"
                     input-id="spouseUnemploymentInsurance"
                     :options="socialInsuranceOptions"
@@ -1405,6 +1416,7 @@ function handleReset() {
                 <div class="flex flex-col gap-2">
                   <label for="spouseAge">{{ t('form.age') }}</label>
                   <Select
+                    id="spouseAge"
                     v-model="spouseAge"
                     input-id="spouseAge"
                     :options="ageOptions"

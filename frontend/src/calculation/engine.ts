@@ -93,6 +93,40 @@ function clampToYear(date: Date | null, year: number, fallbackToYearStart: boole
   return date;
 }
 
+function buildSelfPaidHealthInsuranceSegments(
+  person: PersonIncomeData,
+  scenario: ScenarioOverride,
+  year: number,
+  algCoverageEndRaw: Date | null,
+  newJobStartRaw: Date | null,
+  yearEnd: Date
+): SelfPaidHealthInsuranceSegment[] {
+  if (person.personKey !== 'user' || !person.unemploymentDate || person.severance <= 0 || person.lastMonthlyGrossBeforeUnemployment <= 0) {
+    return [];
+  }
+
+  const severanceMonths = Math.ceil(person.severance / person.lastMonthlyGrossBeforeUnemployment);
+  const severanceCoverageStartRaw = firstDayOfNextMonth(scenario.severancePaymentDate);
+  const severanceCoverageEndRaw = addMonths(severanceCoverageStartRaw, severanceMonths);
+  const postAlgStartRaw = algCoverageEndRaw ?? person.unemploymentDate;
+  const selfPayStartRaw = maxDate(person.unemploymentDate, postAlgStartRaw, severanceCoverageStartRaw);
+  const selfPayEndRaw = minDate(newJobStartRaw ?? yearEnd, severanceCoverageEndRaw, yearEnd);
+  const selfPayStart = clampToYear(selfPayStartRaw, year, true);
+  const selfPayEnd = clampToYear(selfPayEndRaw, year, false);
+  const selfPayMonths = Math.max(0, fullMonthsBetween(selfPayStart, selfPayEnd));
+
+  if (selfPayMonths <= 0) return [];
+
+  return [
+    {
+      kind: 'postAlgUnemployed',
+      monthlyGrossBeforeCap: person.lastMonthlyGrossBeforeUnemployment,
+      monthlyAssessment: Math.min(person.lastMonthlyGrossBeforeUnemployment, BBG_KV_PV_MONTHLY_2026),
+      months: selfPayMonths
+    }
+  ];
+}
+
 // ---------- 收入分解（每年每人每场景） ----------
 
 /**
@@ -160,26 +194,7 @@ export function calcPersonIncome(person: PersonIncomeData, scenario: ScenarioOve
   // in denen die Abfindung rechnerisch durch das letzte Monatsentgelt gedeckt ist.
   // Die App modelliert daraus konservativ eine Selbstzahler-Phase nach ALG-I-Ende
   // und vor Beginn einer neuen Arbeit. RV/ALV entstehen in dieser Phase nicht.
-  const selfPaidHealthInsuranceSegments: SelfPaidHealthInsuranceSegment[] = [];
-  if (person.personKey === 'user' && person.unemploymentDate && person.severance > 0 && person.lastMonthlyGrossBeforeUnemployment > 0) {
-    const severanceMonths = Math.ceil(person.severance / person.lastMonthlyGrossBeforeUnemployment);
-    const severanceCoverageStartRaw = firstDayOfNextMonth(scenario.severancePaymentDate);
-    const severanceCoverageEndRaw = addMonths(severanceCoverageStartRaw, severanceMonths);
-    const postAlgStartRaw = algCoverageEndRaw ?? person.unemploymentDate;
-    const selfPayStartRaw = maxDate(person.unemploymentDate, postAlgStartRaw, severanceCoverageStartRaw);
-    const selfPayEndRaw = minDate(newJobStartRaw ?? yearEnd, severanceCoverageEndRaw, yearEnd);
-    const selfPayStart = clampToYear(selfPayStartRaw, year, true);
-    const selfPayEnd = clampToYear(selfPayEndRaw, year, false);
-    const selfPayMonths = Math.max(0, fullMonthsBetween(selfPayStart, selfPayEnd));
-    if (selfPayMonths > 0) {
-      selfPaidHealthInsuranceSegments.push({
-        kind: 'postAlgUnemployed',
-        monthlyGrossBeforeCap: person.lastMonthlyGrossBeforeUnemployment,
-        monthlyAssessment: Math.min(person.lastMonthlyGrossBeforeUnemployment, BBG_KV_PV_MONTHLY_2026),
-        months: selfPayMonths
-      });
-    }
-  }
+  const selfPaidHealthInsuranceSegments = buildSelfPaidHealthInsuranceSegments(person, scenario, year, algCoverageEndRaw, newJobStartRaw, yearEnd);
 
   return {
     oldJobWage,

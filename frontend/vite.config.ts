@@ -1,4 +1,5 @@
-import { defineConfig, type Plugin } from 'vite';
+import type { Plugin } from 'vite';
+import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -37,5 +38,15 @@ export default defineConfig({
   //   per VITE_BASE_PATH injiziert, damit der Build dieselbe Konfig nutzt.
   // (cast: vite.config läuft in Node, hat aber keine @types/node-Abhängigkeit)
   base: (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.VITE_BASE_PATH ?? '/',
-  plugins: [vue(), tailwindcss(), primeIconsWoff2Only()]
+  plugins: [vue(), tailwindcss(), primeIconsWoff2Only()],
+  test: {
+    environment: 'jsdom',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: 'coverage',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/main.ts']
+    }
+  }
 });

@@ -31,8 +31,8 @@
 | `npm run i18n:check`                  | de/zh 键差异（本地 build 阻塞）        |
 | `npm run sonar:all`                   | SonarCloud 扫描 + 拉取报告             |
 
-## 相关目录
+## 相关文件
 
-- [`.claude/decisions/`](../../../.claude/decisions/) - 架构决策记录（为什么这么做）
-- [`.claude/tasks/`](../../../.claude/tasks/) - 重构 / 功能开发的历史
-- [`.claude/tasks/development-standards.md`](../../../.claude/tasks/development-standards.md) - 正式开发标准
+- [`README.md`](../../../README.md) - 公开项目 README
+- [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) - CI workflow
+- [`.github/workflows/deploy-pages.yml`](../../../.github/workflows/deploy-pages.yml) - GitHub Pages 部署

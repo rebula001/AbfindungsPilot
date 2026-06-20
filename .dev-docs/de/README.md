@@ -13,7 +13,7 @@
 7. [07 - Workflow](./07-development-workflow.md) - Schritt-für-Schritt: neue UI-Felder, Steuersätze ändern
 8. [08 - GitHub Release & Open-Source-Setup](./08-github-release.md) - Lizenz, CI/CD, Pages, Dependabot, PR-Template
 9. [09 - Abschlussaudit Berechnungslogik](./09-calculation-audit.md) - geprüfte Annahmen, Korrekturen, verbleibende Grenzen
-10. [10 - Jahresparameter aktualisieren](./10-tax-parameter-upgrade.md) - JSON-Updateprozess fuer Steuer-/Sozialparameter
+10. [10 - Jahresparameter aktualisieren](./10-tax-parameter-upgrade.md) - JSON-Updateprozess für Steuer-/Sozialparameter
 
 ## Schnellreferenz
 
@@ -31,8 +31,8 @@
 | `npm run i18n:check`                  | DE/ZH Key-Diff (blockiert lokalen Build) |
 | `npm run sonar:all`                   | SonarCloud Scan + Report-Fetch           |
 
-## Verwandte Verzeichnisse
+## Verwandte Dateien
 
-- [`.claude/decisions/`](../../../.claude/decisions/) - Architecture Decision Records (warum etwas so ist)
-- [`.claude/tasks/`](../../../.claude/tasks/) - Historie der Refactorings & Features
-- [`.claude/tasks/development-standards.md`](../../../.claude/tasks/development-standards.md) - formale Standards
+- [`README.md`](../../../README.md) - öffentliches Projekt-README
+- [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) - CI-Workflow
+- [`.github/workflows/deploy-pages.yml`](../../../.github/workflows/deploy-pages.yml) - GitHub-Pages-Deployment

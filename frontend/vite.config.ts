@@ -30,15 +30,31 @@ function primeIconsWoff2Only(): Plugin {
   };
 }
 
+function manualChunks(id: string): string | undefined {
+  if (!id.includes('/node_modules/')) return undefined;
+  if (id.includes('/node_modules/@vue/') || id.includes('/node_modules/vue/')) return 'vendor-vue';
+  if (id.includes('/node_modules/primevue/') || id.includes('/node_modules/@primevue/')) return 'vendor-primevue';
+  if (id.includes('/node_modules/@primeuix/') || id.includes('/node_modules/primeicons/')) return 'vendor-primeui';
+  if (id.includes('/node_modules/vue-i18n/') || id.includes('/node_modules/@intlify/')) return 'vendor-i18n';
+  return 'vendor';
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Basis-URL für Asset-Pfade.
   // - Lokal (dev / preview): "/" (Standard)
-  // - GitHub Pages Project-Page: "/abfindungspilot/" → wird vom Deploy-Workflow
+  // - GitHub Pages Project-Page: "/AbfindungsPilot/" -> wird vom Deploy-Workflow
   //   per VITE_BASE_PATH injiziert, damit der Build dieselbe Konfig nutzt.
   // (cast: vite.config läuft in Node, hat aber keine @types/node-Abhängigkeit)
   base: (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.VITE_BASE_PATH ?? '/',
   plugins: [vue(), tailwindcss(), primeIconsWoff2Only()],
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks
+      }
+    }
+  },
   test: {
     environment: 'jsdom',
     coverage: {

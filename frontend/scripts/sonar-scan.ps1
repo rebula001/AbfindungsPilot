@@ -74,6 +74,7 @@ if (-not $SkipScan -and -not $scanToken) {
 }
 
 $scannerCommand = $null
+$scannerCommandArgs = @()
 if (Test-Path $localScannerCmd) {
   $scannerCommand = $localScannerCmd
 } elseif (Test-Path $localScannerUnix) {
@@ -88,8 +89,16 @@ if (Test-Path $localScannerCmd) {
   }
 }
 
+if (-not $scannerCommand) {
+  $scannerCommandInfo = Get-Command npx -ErrorAction SilentlyContinue
+  if ($scannerCommandInfo) {
+    $scannerCommand = $scannerCommandInfo.Source
+    $scannerCommandArgs = @('--yes', 'sonar-scanner@3.1.0')
+  }
+}
+
 if (-not $SkipScan -and -not $scannerCommand) {
-  Write-Host 'sonar-scanner was not found. Run `npm install` in the frontend directory.' -ForegroundColor Red
+  Write-Host 'sonar-scanner was not found. Install it globally or ensure npx is available.' -ForegroundColor Red
   exit 2
 }
 
@@ -135,7 +144,7 @@ if (-not $SkipScan) {
   Remove-ScannerWorkDir
   Push-Location $frontendDir
   try {
-    & $scannerCommand
+    & $scannerCommand @scannerCommandArgs
     if ($LASTEXITCODE -ne 0) {
       Write-Host "sonar-scanner failed (exit $LASTEXITCODE)" -ForegroundColor Red
       exit 1

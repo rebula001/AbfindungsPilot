@@ -2,7 +2,5 @@
 User-agent: *
 Allow: /
 
-# TODO before going public: replace <USER> with your real GitHub username
-# (or swap the whole URL for your custom domain). Keep this file and
-# public/sitemap.xml in sync.
-Sitemap: https://<USER>.github.io/abfindungspilot/sitemap.xml
+# Keep this file and public/sitemap.xml in sync.
+Sitemap: https://rebula001.github.io/AbfindungsPilot/sitemap.xml

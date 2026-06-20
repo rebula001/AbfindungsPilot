@@ -115,6 +115,8 @@ function setLanguage(language: Language) {
   locale.value = language;
   cacheLanguage(language);
 }
+
+const logoUrl = `${import.meta.env.BASE_URL}logo/logo.svg`;
 </script>
 
 <template>
@@ -122,7 +124,7 @@ function setLanguage(language: Language) {
     <Toolbar class="rounded-none! border-x-0 border-t-0">
       <template #start>
         <div class="flex items-center gap-3">
-          <img class="h-7 w-7" src="/logo/logo.svg" :alt="t('app.logoAlt')" />
+          <img class="h-7 w-7" :src="logoUrl" :alt="t('app.logoAlt')" />
           <div class="font-semibold tracking-wide">{{ t('app.name') }}</div>
         </div>
       </template>

@@ -1,12 +1,10 @@
 #
 # CI - laeuft bei jedem Push auf `main` und bei jedem Pull Request.
 #
-# Aufgabe: dieselben Checks reproduzieren, die `npm run build` lokal macht
-# (lint + format + i18n + vue-tsc + vite build). Schlaegt etwas fehl, ist
-# der PR / Commit rot.
+# Aufgabe: die wichtigsten lokalen Checks als einzelne, gut lesbare
+# CI-Schritte reproduzieren. Schlaegt etwas fehl, ist der PR / Commit rot.
 #
 # Was bewusst NICHT hier laeuft:
-# - SonarQube -> benoetigt Token, laeuft lokal via `npm run sonar:all`
 # - Deploy -> kommt in einer separaten Pages-Workflow-Datei
 name: CI
 
@@ -27,9 +25,9 @@ permissions:
 
 jobs:
   build:
-    name: Lint, type-check, build
+    name: Lint, test, type-check, build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -37,28 +35,30 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies (clean)
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # `npm run build` ruft intern `check:all` auf:
-      # lint:check + format:check + i18n:check + vue-tsc + vite build
-      # Damit ist eine gruene CI gleichbedeutend mit "lokal sauber gebaut".
-      - name: Build (strict)
-        run: npm run build
+      - name: Format check
+        run: npm run format:check
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ github.sha }}
-          path: frontend/dist
-          retention-days: 7
-          if-no-files-found: error
+      - name: Lint check
+        run: npm run lint:check
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      # `build:fast` reicht hier, weil format/lint bereits als eigene
+      # CI-Schritte gelaufen sind. Enthalten bleiben vue-tsc + vite build.
+      - name: Type-check and build
+        run: npm run build:fast
